@@ -6,7 +6,9 @@ One file per phrase, named exactly as shown. Normal speed, quiet room, phone hel
 
 - `zdravo.m4a`: Zdravo! (Hello!)
 - `sta-ima.m4a`: Šta ima? (What's up?)
+  - `sta-ima-extra-1.m4a`: Evo, ništa. (Nothing much. (a common answer))
 - `kako-si.m4a`: Kako si? (How are you?)
+  - `kako-si-extra-1.m4a`: Kako ste? (How are you? (polite))
 - `dobro-sam.m4a`: Dobro sam. (I'm good.)
 - `hvala-lijepa.m4a`: Hvala lijepa. (Thank you very much.)
 - `nema-problema.m4a`: Nema problema. (No problem.)
@@ -19,6 +21,7 @@ One file per phrase, named exactly as shown. Normal speed, quiet room, phone hel
 - `volim-te.m4a`: Volim te. (I love you.)
 - `falis-mi.m4a`: Fališ mi. (I miss you.)
 - `kako-je-nana.m4a`: Kako je nana? (How's grandma?)
+  - `kako-je-nana-extra-1.m4a`: baka (grandma (Croatia, Serbia))
 - `hajmo-jesti.m4a`: Hajmo jesti! (Let's eat!)
 
 ## When you're stuck
@@ -33,6 +36,7 @@ One file per phrase, named exactly as shown. Normal speed, quiet room, phone hel
 
 - `prijatno.m4a`: Prijatno! (Enjoy your meal!)
 - `hoces-kahvu.m4a`: Hoćeš kahvu? (Want some coffee?)
+  - `hoces-kahvu-extra-1.m4a`: kafa (coffee (also common))
 - `jos-malo.m4a`: Još malo. (A little more.)
 - `sit-sam.m4a`: Sit sam. (I'm full.)
 

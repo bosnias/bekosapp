@@ -2,11 +2,18 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { course, units, allPhrases } from '../lessons';
-import { useProgress } from '../progress';
+import { useProgress, type Mode } from '../progress';
 import { color, font } from '../theme';
 
+const MODES: { value: Mode; label: string; note: string }[] = [
+  { value: 'speak', label: 'Speaking', note: 'Hear it, understand it, say it. No reading yet.' },
+  { value: 'noTalk', label: "Can't talk", note: 'Hear it and understand it, then say it in your head.' },
+  { value: 'noListen', label: "Can't listen", note: 'No sound. You read the phrase instead, then say it.' },
+];
+
 export default function Home() {
-  const { done, listenOnly, setListenOnly } = useProgress();
+  const { done, mode, setMode } = useProgress();
+  const showText = mode === 'noListen';
   const finished = allPhrases.filter((p) => done[p.id] !== undefined).length;
 
   return (
@@ -23,21 +30,18 @@ export default function Home() {
           <Text style={s.course}>{course.language}</Text>
 
           <View style={s.modes}>
-            {[
-              { label: 'Speaking', value: false },
-              { label: 'Listen only', value: true },
-            ].map((m) => (
+            {MODES.map((m) => (
               <Pressable
-                key={m.label}
+                key={m.value}
                 accessibilityRole="button"
-                onPress={() => setListenOnly(m.value)}
-                style={[s.mode, listenOnly === m.value && s.modeOn]}
+                onPress={() => setMode(m.value)}
+                style={[s.mode, mode === m.value && s.modeOn]}
               >
-                <Text style={[s.modeText, listenOnly === m.value && s.modeTextOn]}>{m.label}</Text>
+                <Text style={[s.modeText, mode === m.value && s.modeTextOn]}>{m.label}</Text>
               </Pressable>
             ))}
           </View>
-          {listenOnly && <Text style={s.modeNote}>For when you can't talk out loud. You'll hear and learn each phrase, then say it in your head.</Text>}
+          <Text style={s.modeNote}>{MODES.find((m) => m.value === mode)?.note}</Text>
 
           {units.map((unit, u) => (
             <View key={unit.id} style={s.unit}>
@@ -54,8 +58,14 @@ export default function Home() {
                       style={({ pressed }) => [s.row, pressed && { backgroundColor: color.soft }]}
                     >
                       <View style={{ flex: 1 }}>
-                        <Text style={s.rowBs}>{p.text}</Text>
-                        <Text style={s.rowEn}>{p.meaning}</Text>
+                        {showText ? (
+                          <>
+                            <Text style={s.rowBs}>{p.text}</Text>
+                            <Text style={s.rowEn}>{p.meaning}</Text>
+                          </>
+                        ) : (
+                          <Text style={s.rowBs}>{p.meaning}</Text>
+                        )}
                       </View>
                       {score !== undefined && (
                         <View style={[s.badge, score >= 85 ? s.badgeGood : s.badgeDone]}>
@@ -102,9 +112,9 @@ const s = StyleSheet.create({
   },
   mode: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 7 },
   modeOn: { backgroundColor: color.ink },
-  modeText: { fontFamily: font.bold, fontSize: 15, color: color.muted },
+  modeText: { fontFamily: font.bold, fontSize: 14, color: color.muted },
   modeTextOn: { color: color.white },
-  modeNote: { fontFamily: font.regular, fontSize: 14, lineHeight: 20, color: color.body, marginTop: 10 },
+  modeNote: { fontFamily: font.regular, fontSize: 14, lineHeight: 20, color: color.body, marginTop: 10, minHeight: 20 },
   unit: { marginTop: 36 },
   unitLabel: { fontFamily: font.bold, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', color: color.red },
   unitTitle: { fontFamily: font.extrabold, fontSize: 24, color: color.ink, letterSpacing: -0.5, marginTop: 2 },

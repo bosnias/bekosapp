@@ -4,12 +4,18 @@
 
 export type Word = { word: string; meaning: string };
 
+// Extra related phrases mentioned in a note (heard, not read, in the first half).
+export type Extra = { text: string; meaning: string; audio?: number };
+
+// The first half of the course is listening and speaking only: Bosnian text is
+// shown only when the learner switches to "Can't listen". Notes stay in English.
 export type Phrase = {
   id: string;
   text: string;
   meaning: string;
   literal?: string;
   note?: string;
+  extras?: Extra[];
   words: Word[];
   audio?: number;
 };
@@ -28,7 +34,7 @@ export const units: Unit[] = [
         text: 'Zdravo!',
         meaning: 'Hello!',
         literal: 'Healthy!',
-        note: 'Comes from "zdrav", healthy. Works with anyone.',
+        note: 'Comes from the word for healthy. Works with anyone.',
         words: [{ word: 'zdravo', meaning: 'hello' }],
       },
       {
@@ -36,7 +42,8 @@ export const units: Unit[] = [
         text: 'Šta ima?',
         meaning: "What's up?",
         literal: 'What is there?',
-        note: 'The everyday way to greet a friend. A common answer is "Evo, ništa" (Nothing much).',
+        note: 'The everyday way to greet a friend.',
+        extras: [{ text: 'Evo, ništa.', meaning: 'Nothing much. (a common answer)' }],
         words: [
           { word: 'šta', meaning: 'what' },
           { word: 'ima', meaning: 'there is' },
@@ -46,7 +53,8 @@ export const units: Unit[] = [
         id: 'kako-si',
         text: 'Kako si?',
         meaning: 'How are you?',
-        note: 'Informal, for friends and family. With someone older or a stranger, say "Kako ste?"',
+        note: 'Informal, for friends and family. With someone older or a stranger, use the polite form.',
+        extras: [{ text: 'Kako ste?', meaning: 'How are you? (polite)' }],
         words: [
           { word: 'kako', meaning: 'how' },
           { word: 'si', meaning: 'you are' },
@@ -67,7 +75,7 @@ export const units: Unit[] = [
         text: 'Hvala lijepa.',
         meaning: 'Thank you very much.',
         literal: 'Thanks, beautiful.',
-        note: '"Lijepa" means beautiful. Together it is a warm, polite thank you.',
+        note: 'The second word means beautiful. Together it is a warm, polite thank you.',
         words: [
           { word: 'hvala', meaning: 'thanks' },
           { word: 'lijepa', meaning: 'beautiful' },
@@ -141,7 +149,8 @@ export const units: Unit[] = [
         id: 'kako-je-nana',
         text: 'Kako je nana?',
         meaning: "How's grandma?",
-        note: 'In Bosnia grandma is "nana". In Croatia and Serbia you will also hear "baka".',
+        note: 'This is the Bosnian word for grandma. In Croatia and Serbia you will also hear another one.',
+        extras: [{ text: 'baka', meaning: 'grandma (Croatia, Serbia)' }],
         words: [
           { word: 'kako', meaning: 'how' },
           { word: 'je', meaning: 'is' },
@@ -176,7 +185,7 @@ export const units: Unit[] = [
         id: 'mozes-li-ponoviti',
         text: 'Možeš li ponoviti?',
         meaning: 'Can you repeat that?',
-        note: '"Li" turns a sentence into a question.',
+        note: 'The short middle word turns a sentence into a question.',
         words: [
           { word: 'možeš', meaning: 'you can' },
           { word: 'li', meaning: '(question)' },
@@ -227,7 +236,8 @@ export const units: Unit[] = [
         id: 'hoces-kahvu',
         text: 'Hoćeš kahvu?',
         meaning: 'Want some coffee?',
-        note: 'Bosnians say "kahva". You will also hear "kafa".',
+        note: 'This is the Bosnian word for coffee. You will also hear another one.',
+        extras: [{ text: 'kafa', meaning: 'coffee (also common)' }],
         words: [
           { word: 'hoćeš', meaning: 'you want' },
           { word: 'kahvu', meaning: 'coffee' },

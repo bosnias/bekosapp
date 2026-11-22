@@ -41,7 +41,9 @@ export default function LessonScreen() {
 }
 
 function Lesson({ phrase }: { phrase: Phrase }) {
-  const { listenOnly, markDone } = useProgress();
+  const { mode, markDone } = useProgress();
+  const showText = mode === 'noListen'; // Bosnian text only when you can't listen
+  const canSpeak = mode !== 'noTalk';
   const [step, setStep] = useState<Step>('hear');
   const [plays, setPlays] = useState(0);
   const [checking, setChecking] = useState(false);
@@ -49,6 +51,7 @@ function Lesson({ phrase }: { phrase: Phrase }) {
   const [error, setError] = useState('');
 
   const player = useAudioPlayer(phrase.audio ?? { uri: speakUrl(phrase.text) });
+  const clipPlayer = useAudioPlayer(null);
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const rec = useAudioRecorderState(recorder, 200);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -71,12 +74,19 @@ function Lesson({ phrase }: { phrase: Phrase }) {
     setPlays((n) => n + 1);
   };
 
+  const playClip = async (text: string, audio?: number) => {
+    await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false });
+    player.pause();
+    clipPlayer.replace(audio ?? { uri: speakUrl(text) });
+    clipPlayer.play();
+  };
+
   const startRecording = async () => {
     setError('');
     setResult(null);
     const perm = await requestRecordingPermissionsAsync();
     if (!perm.granted) {
-      setError('Bekos needs your microphone to hear you. Turn it on in your settings, or switch to Listen only.');
+      setError("Bekos needs your microphone to hear you. Turn it on in your settings, or switch to Can't talk.");
       return;
     }
     player.pause();
@@ -107,7 +117,8 @@ function Lesson({ phrase }: { phrase: Phrase }) {
   };
 
   const stepNumber = step === 'hear' ? 0 : step === 'understand' ? 1 : 2;
-  const labels = ['Hear it', 'Understand it', listenOnly ? 'Think it' : 'Say it'];
+  const labels = [showText ? 'Read it' : 'Hear it', 'Understand it', canSpeak ? 'Say it' : 'Think it'];
+  const wordLabel = (i: number) => (showText ? phrase.words[i]?.word : phrase.words[i]?.meaning) ?? '';
 
   return (
     <View style={s.lesson}>
@@ -129,20 +140,30 @@ function Lesson({ phrase }: { phrase: Phrase }) {
       </View>
 
       <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
-        {step === 'hear' && (
+        {step === 'hear' && !showText && (
           <View style={s.center}>
             <Image source={require('../../../assets/mascot.png')} style={s.mascot} resizeMode="contain" />
             <Text style={s.title}>Listen first.</Text>
-            <Text style={s.sub}>Play it as many times as you like. The words come next.</Text>
+            <Text style={s.sub}>Play it as many times as you like.</Text>
           </View>
         )}
 
-        {step !== 'hear' && (
+        {step === 'hear' && showText && (
           <View>
             <Text style={s.phrase}>{phrase.text}</Text>
-            <Text style={s.meaning}>{phrase.meaning}</Text>
+            <Text style={[s.sub, s.left, { marginTop: 16 }]}>Read it slowly and sound it out in your head.</Text>
           </View>
         )}
+
+        {step !== 'hear' &&
+          (showText ? (
+            <View>
+              <Text style={s.phrase}>{phrase.text}</Text>
+              <Text style={s.meaning}>{phrase.meaning}</Text>
+            </View>
+          ) : (
+            <Text style={s.phrase}>{phrase.meaning}</Text>
+          ))}
 
         {step === 'understand' && (
           <View>
@@ -150,24 +171,36 @@ function Lesson({ phrase }: { phrase: Phrase }) {
               <Text style={s.literal}>Word for word: {phrase.literal}</Text>
             )}
             <View style={s.words}>
-              {phrase.words.map((w) => (
-                <View key={w.word} style={s.wordRow}>
-                  <Text style={s.wordBs}>{w.word}</Text>
+              {phrase.words.map((w, i) => (
+                <View key={i} style={s.wordRow}>
+                  <Text style={s.wordBs}>{showText ? w.word : `Word ${i + 1}`}</Text>
                   <Text style={s.wordEn}>{w.meaning}</Text>
+                  {!showText && <Small label="Play" onPress={() => playClip(w.word)} />}
                 </View>
               ))}
             </View>
             {phrase.note && <Text style={s.note}>{phrase.note}</Text>}
+            {phrase.extras && (
+              <View style={s.words}>
+                {phrase.extras.map((x) => (
+                  <View key={x.text} style={s.wordRow}>
+                    {showText && <Text style={s.wordBs}>{x.text}</Text>}
+                    <Text style={[s.wordEn, !showText && s.extraEn]}>{x.meaning}</Text>
+                    {!showText && <Small label="Play" onPress={() => playClip(x.text, x.audio)} />}
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         )}
 
-        {step === 'say' && listenOnly && (
+        {step === 'say' && !canSpeak && (
           <Text style={[s.sub, s.left, { marginTop: 32 }]}>
             Say it in your head, or under your breath. Switch to Speaking when you can talk out loud to get scored.
           </Text>
         )}
 
-        {step === 'say' && !listenOnly && (
+        {step === 'say' && canSpeak && (
           <View>
             {checking && (
               <View style={s.checking}>
@@ -175,28 +208,37 @@ function Lesson({ phrase }: { phrase: Phrase }) {
                 <Text style={s.sub}>Listening back…</Text>
               </View>
             )}
-            {result && !checking && <Result result={result} />}
+            {result && !checking && (
+              <Result
+                result={result}
+                label={wordLabel}
+                showText={showText}
+                onWord={showText ? undefined : (i) => playClip(phrase.words[i]?.word ?? '')}
+              />
+            )}
             {!!error && <Text style={s.error}>{error}</Text>}
           </View>
         )}
       </ScrollView>
 
       <View style={s.footer}>
-        {step === 'hear' && (
+        {step === 'hear' && !showText && (
           <>
             <Button label={plays ? 'Play again' : 'Play'} onPress={play} kind={plays ? 'secondary' : 'primary'} />
-            {plays > 0 && <Button label="Show me the words" onPress={() => setStep('understand')} />}
+            {plays > 0 && <Button label="What does it mean?" onPress={() => setStep('understand')} />}
           </>
         )}
+
+        {step === 'hear' && showText && <Button label="What does it mean?" onPress={() => setStep('understand')} />}
 
         {step === 'understand' && (
           <>
-            <Button label="Play again" onPress={play} kind="secondary" />
-            <Button label={listenOnly ? 'Next' : 'Now say it'} onPress={() => setStep('say')} />
+            {!showText && <Button label="Play again" onPress={play} kind="secondary" />}
+            <Button label={canSpeak ? 'Now say it' : 'Next'} onPress={() => setStep('say')} />
           </>
         )}
 
-        {step === 'say' && listenOnly && (
+        {step === 'say' && !canSpeak && (
           <>
             <Button label="Play again" onPress={play} kind="secondary" />
             <Button
@@ -209,19 +251,19 @@ function Lesson({ phrase }: { phrase: Phrase }) {
           </>
         )}
 
-        {step === 'say' && !listenOnly && !checking && (
+        {step === 'say' && canSpeak && !checking && (
           <>
             {rec.isRecording ? (
               <Button label={`Done  ${Math.floor(rec.durationMillis / 1000)}s`} onPress={stopRecording} kind="gold" />
             ) : result ? (
               <>
-                <Button label="Hear it again" onPress={play} kind="secondary" />
+                {!showText && <Button label="Hear it again" onPress={play} kind="secondary" />}
                 <Button label="Try again" onPress={startRecording} kind="secondary" />
                 <Button label={next ? 'Next phrase' : 'Back to lessons'} onPress={goNext} />
               </>
             ) : (
               <>
-                <Button label="Hear it again" onPress={play} kind="secondary" />
+                {!showText && <Button label="Hear it again" onPress={play} kind="secondary" />}
                 <Button label="Tap and speak" onPress={startRecording} />
               </>
             )}
@@ -232,25 +274,52 @@ function Lesson({ phrase }: { phrase: Phrase }) {
   );
 }
 
-function Result({ result }: { result: ScoreResult }) {
+function Small({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => [s.small, pressed && { backgroundColor: color.soft }]}
+    >
+      <Text style={s.smallText}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function Result({
+  result,
+  label,
+  showText,
+  onWord,
+}: {
+  result: ScoreResult;
+  label: (i: number) => string;
+  showText: boolean;
+  onWord?: (i: number) => void;
+}) {
   const allGood = result.words.every((w) => w.status === 'good');
-  const label = result.score >= 85 && allGood ? 'Spot on.' : result.score >= 60 ? 'Close.' : 'Not yet.';
+  const verdict = result.score >= 85 && allGood ? 'Spot on.' : result.score >= 60 ? 'Close.' : 'Not yet.';
   return (
     <View style={s.result}>
       <View style={s.scoreRow}>
         <Text style={s.score}>{result.score}</Text>
-        <Text style={s.scoreLabel}>{label}</Text>
+        <Text style={s.scoreLabel}>{verdict}</Text>
       </View>
       <View style={s.chips}>
         {result.words.map((w, i) => (
-          <View key={i} style={[s.chip, s[w.status]]}>
-            <Text style={[s.chipText, w.status === 'close' && { color: color.ink }]}>{w.word}</Text>
-          </View>
+          <Pressable key={i} disabled={!onWord} onPress={() => onWord?.(i)} style={[s.chip, s[w.status]]}>
+            <Text style={[s.chipText, w.status === 'close' && { color: color.ink }]}>{label(i)}</Text>
+          </Pressable>
         ))}
       </View>
-      <Text style={s.heard}>
-        We heard: <Text style={s.heardText}>{result.heard || 'nothing clear'}</Text>
-      </Text>
+      {showText ? (
+        <Text style={s.heard}>
+          We heard: <Text style={s.heardText}>{result.heard || 'nothing clear'}</Text>
+        </Text>
+      ) : (
+        <Text style={s.heard}>Tap a word to hear it again.</Text>
+      )}
     </View>
   );
 }
@@ -286,6 +355,7 @@ const s = StyleSheet.create({
   words: { marginTop: 28, borderTopWidth: 1, borderColor: color.line },
   wordRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 14,
     borderBottomWidth: 1,
@@ -293,7 +363,17 @@ const s = StyleSheet.create({
     gap: 16,
   },
   wordBs: { fontFamily: font.bold, fontSize: 18, color: color.ink },
-  wordEn: { fontFamily: font.regular, fontSize: 18, color: color.body, flexShrink: 1, textAlign: 'right' },
+  wordEn: { fontFamily: font.regular, fontSize: 18, color: color.body, flex: 1, textAlign: 'right' },
+  extraEn: { textAlign: 'left', color: color.ink },
+  small: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderBottomWidth: 3,
+    borderColor: color.line,
+  },
+  smallText: { fontFamily: font.bold, fontSize: 14, color: color.red },
   note: { fontFamily: font.regular, fontSize: 16, lineHeight: 24, color: color.body, marginTop: 20 },
   checking: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 40 },
   result: { marginTop: 36 },
