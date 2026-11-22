@@ -1,8 +1,9 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { course, units, allPhrases } from '../lessons';
 import { useProgress, type Mode } from '../progress';
+import { links } from '../config';
 import { color, font } from '../theme';
 
 const MODES: { value: Mode; label: string; note: string }[] = [
@@ -67,22 +68,70 @@ export default function Home() {
                           <Text style={s.rowBs}>{p.meaning}</Text>
                         )}
                       </View>
-                      {score !== undefined && (
-                        <View style={[s.badge, score >= 85 ? s.badgeGood : s.badgeDone]}>
-                          <Text style={[s.badgeText, score < 85 && { color: color.ink }]}>
-                            {score > 0 ? score : 'Heard'}
-                          </Text>
-                        </View>
-                      )}
+                      <Badge score={score} />
                     </Pressable>
                   );
                 })}
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => router.push(`/talk/${unit.id}`)}
+                  style={({ pressed }) => [s.row, s.talkRow, pressed && { backgroundColor: '#F6E8D0' }]}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.rowBs}>Conversation</Text>
+                    <Text style={s.rowEn}>They talk, you answer. {unit.talk.length} turns.</Text>
+                  </View>
+                  <Badge score={done[`talk-${unit.id}`]} />
+                </Pressable>
               </View>
             </View>
           ))}
+
+          <View style={s.unit}>
+            <Text style={s.unitLabel}>Real people</Text>
+            <Text style={s.unitTitle}>Talk to a native speaker</Text>
+            <View style={s.list}>
+              <LinkRow
+                title="Practice calls"
+                sub="Short video calls with people who grew up speaking it."
+                url={links.practiceCalls}
+              />
+              <LinkRow
+                title="Final conversation test"
+                sub="Hold a real conversation with a native speaker to finish the course."
+                url={links.finalTest}
+              />
+            </View>
+          </View>
         </ScrollView>
       </View>
     </SafeAreaView>
+  );
+}
+
+function Badge({ score }: { score?: number }) {
+  if (score === undefined) return null;
+  return (
+    <View style={[s.badge, score >= 85 ? s.badgeGood : s.badgeDone]}>
+      <Text style={[s.badgeText, score < 85 && { color: color.ink }]}>{score > 0 ? score : 'Heard'}</Text>
+    </View>
+  );
+}
+
+function LinkRow({ title, sub, url }: { title: string; sub: string; url: string }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      disabled={!url}
+      onPress={() => Linking.openURL(url)}
+      style={({ pressed }) => [s.row, pressed && { backgroundColor: color.soft }]}
+    >
+      <View style={{ flex: 1 }}>
+        <Text style={s.rowBs}>{title}</Text>
+        <Text style={s.rowEn}>{sub}</Text>
+      </View>
+      <Text style={[s.linkTag, !url && { color: color.muted }]}>{url ? 'Book' : 'Coming soon'}</Text>
+    </Pressable>
   );
 }
 
@@ -130,6 +179,8 @@ const s = StyleSheet.create({
   },
   rowBs: { fontFamily: font.bold, fontSize: 18, color: color.ink },
   rowEn: { fontFamily: font.regular, fontSize: 15, color: color.muted, marginTop: 2 },
+  talkRow: { backgroundColor: '#FBF3E6', paddingHorizontal: 12, borderBottomColor: color.line },
+  linkTag: { fontFamily: font.bold, fontSize: 14, color: color.red },
   badge: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6, minWidth: 40, alignItems: 'center' },
   badgeGood: { backgroundColor: color.good },
   badgeDone: { backgroundColor: color.gold },

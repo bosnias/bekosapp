@@ -1,17 +1,28 @@
-// Stand-in voice: reads a Bosnian phrase with Azure's bs-BA Vesna voice.
-// Replaced phrase by phrase as real native recordings come in.
+// Stand-in voices: reads a phrase with one of a few Azure voices (Bosnian,
+// Croatian, Serbian) so learners hear several speakers. Replaced phrase by
+// phrase as real native recordings come in.
+
+const VOICES: Record<string, string> = {
+  'bs-BA-VesnaNeural': 'bs-BA',
+  'bs-BA-GoranNeural': 'bs-BA',
+  'hr-HR-GabrijelaNeural': 'hr-HR',
+  'sr-Latn-RS-NicholasNeural': 'sr-Latn-RS',
+};
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 export default async (req: Request) => {
-  const text = new URL(req.url).searchParams.get('text')?.slice(0, 120);
+  const params = new URL(req.url).searchParams;
+  const text = params.get('text')?.slice(0, 160);
+  const voice = VOICES[params.get('voice') ?? ''] ? params.get('voice')! : 'bs-BA-VesnaNeural';
   const key = process.env.AZURE_SPEECH_KEY;
   const region = process.env.AZURE_SPEECH_REGION;
   if (!text) return new Response('Missing text', { status: 400 });
   if (!key || !region) return new Response('Speech key not set', { status: 500 });
 
-  const ssml = `<speak version="1.0" xml:lang="bs-BA"><voice name="bs-BA-VesnaNeural"><prosody rate="-10%">${esc(text)}</prosody></voice></speak>`;
+  const lang = VOICES[voice];
+  const ssml = `<speak version="1.0" xml:lang="${lang}"><voice name="${voice}"><prosody rate="-10%">${esc(text)}</prosody></voice></speak>`;
 
   const res = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
     method: 'POST',
@@ -28,7 +39,7 @@ export default async (req: Request) => {
   return new Response(res.body, {
     headers: {
       'Content-Type': 'audio/mpeg',
-      // Same phrase, same audio: let Netlify's CDN keep it so Azure is only called once.
+      // Same phrase and voice, same audio: let Netlify's CDN keep it so Azure is only called once.
       'Cache-Control': 'public, max-age=86400',
       'Netlify-CDN-Cache-Control': 'public, max-age=31536000, durable',
     },

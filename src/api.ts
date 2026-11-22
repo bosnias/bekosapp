@@ -5,7 +5,8 @@ import Constants from 'expo-constants';
 // The phone apps call the deployed site (set "apiUrl" in app.json).
 const API = Platform.OS === 'web' ? '' : (Constants.expoConfig?.extra?.apiUrl ?? '');
 
-export const speakUrl = (text: string) => `${API}/api/speak?text=${encodeURIComponent(text)}`;
+export const speakUrl = (text: string, voice?: string) =>
+  `${API}/api/speak?text=${encodeURIComponent(text)}${voice ? `&voice=${encodeURIComponent(voice)}` : ''}`;
 
 export async function transcribe(uri: string): Promise<string> {
   const form = new FormData();
