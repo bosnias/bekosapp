@@ -4,3 +4,9 @@
 
 [build.environment]
   NODE_VERSION = "22"
+
+# The app is one page; send every other address to it (the /api functions are matched first).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
