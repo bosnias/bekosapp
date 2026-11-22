@@ -1,17 +1,19 @@
 {
   "expo": {
-    "name": "bekos-app",
-    "slug": "bekos-app",
+    "name": "Bekos",
+    "slug": "bekos",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "app.bekos"
     },
     "android": {
+      "package": "app.bekos",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#B33A1B",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -19,7 +21,21 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "Bekos",
+      "themeColor": "#FFFFFF"
+    },
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Bekos listens when you speak a phrase so it can score your pronunciation."
+        }
+      ],
+      "expo-font"
+    ],
+    "extra": {
+      "apiUrl": "https://app.bekos.app"
     }
   }
 }
