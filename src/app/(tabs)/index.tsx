@@ -162,7 +162,7 @@ export default function Map() {
     return () => loop.stop();
   }, [bob]);
   const [mascotVisible, setMascotVisible] = useState(false);
-  const mascotSpot = (n: Placed) => ({ x: n.x - MASCOT_W / 2, y: n.y - MASCOT_H + 4 });
+  const mascotSpot = (n: Placed) => ({ x: n.x - MASCOT_W / 2, y: n.y - DEPTH - MASCOT_H + 4 });
 
   const placeMascot = useCallback(() => {
     const target = nodeOf(current.id);
@@ -382,7 +382,8 @@ function Tile({ node, isCurrent, onPress }: { node: Placed; isCurrent: boolean; 
   }, [isCurrent, pulse]);
 
   return (
-    <View style={{ position: 'absolute', left: node.x - w / 2, top: node.y - h / 2, width: w, height: h + DEPTH }}>
+    // The block's base sits in its cell; the top face is raised by its thickness.
+    <View style={{ position: 'absolute', left: node.x - w / 2, top: node.y - h / 2 - DEPTH, width: w, height: h + DEPTH }}>
       <Pop>
         {isCurrent && (
           <Animated.View
