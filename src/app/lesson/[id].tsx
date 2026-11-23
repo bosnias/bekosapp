@@ -9,6 +9,7 @@ import { playToEnd, useClipPlayer, useSpeakers } from '../../audio';
 import { useProgress } from '../../progress';
 import { Button } from '../../components/Button';
 import { Scene } from '../../components/Scene';
+import { IdleHint, SmallLink } from '../../components/IdleHint';
 import { color, font } from '../../theme';
 
 type Step = 'hear' | 'understand' | 'say';
@@ -36,7 +37,7 @@ export default function LessonScreen() {
 }
 
 function Lesson({ phrase }: { phrase: Phrase }) {
-  const { mode, markDone } = useProgress();
+  const { mode, setMode, markDone } = useProgress();
   const showText = mode === 'noListen'; // Bosnian text only when you can't listen
   const canSpeak = mode !== 'noTalk';
 
@@ -244,6 +245,22 @@ function Lesson({ phrase }: { phrase: Phrase }) {
       </ScrollView>
 
       <View style={s.footer}>
+        {mode === 'noListen' && <SmallLink label="Sound back on" onPress={() => setMode('speak')} />}
+        {mode === 'noTalk' && <SmallLink label="I can talk now" onPress={() => setMode('speak')} />}
+        {mode === 'speak' && (
+          <IdleHint
+            resetKey={`${step}-${plays}-${!!result}-${attempt.isRecording}-${checking}-${busy}-${revealed}`}
+            active={
+              (step === 'hear' && plays === 0) ||
+              (step === 'say' && !result && !attempt.isRecording && !checking && !busy)
+            }
+            hints={
+              step === 'hear'
+                ? [{ label: "Can't listen right now?", onPress: () => setMode('noListen') }]
+                : [{ label: "Can't talk right now?", onPress: () => setMode('noTalk') }]
+            }
+          />
+        )}
         {step === 'hear' && !showText && (
           <>
             <Button

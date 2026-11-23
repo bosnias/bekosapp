@@ -2,18 +2,13 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { course, units, allPhrases } from '../lessons';
-import { useProgress, type Mode } from '../progress';
+import { useProgress } from '../progress';
 import { links } from '../config';
 import { color, font } from '../theme';
 
-const MODES: { value: Mode; label: string; note: string }[] = [
-  { value: 'speak', label: 'Speaking', note: 'Hear it, understand it, say it. No reading yet.' },
-  { value: 'noTalk', label: "Can't talk", note: 'Hear it and understand it, then say it in your head.' },
-  { value: 'noListen', label: "Can't listen", note: 'No sound. You read the phrase instead, then say it.' },
-];
 
 export default function Home() {
-  const { done, mode, setMode } = useProgress();
+  const { done, mode } = useProgress();
   const showText = mode === 'noListen';
   const finished = allPhrases.filter((p) => done[p.id] !== undefined).length;
 
@@ -29,20 +24,6 @@ export default function Home() {
 
         <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
           <Text style={s.course}>{course.language}</Text>
-
-          <View style={s.modes}>
-            {MODES.map((m) => (
-              <Pressable
-                key={m.value}
-                accessibilityRole="button"
-                onPress={() => setMode(m.value)}
-                style={[s.mode, mode === m.value && s.modeOn]}
-              >
-                <Text style={[s.modeText, mode === m.value && s.modeTextOn]}>{m.label}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <Text style={s.modeNote}>{MODES.find((m) => m.value === mode)?.note}</Text>
 
           {units.map((unit, u) => (
             <View key={unit.id} style={s.unit}>
@@ -150,20 +131,6 @@ const s = StyleSheet.create({
   count: { fontFamily: font.semibold, fontSize: 14, color: color.muted },
   body: { padding: 24, paddingTop: 16, paddingBottom: 48 },
   course: { fontFamily: font.black, fontSize: 40, color: color.ink, letterSpacing: -1.2 },
-  modes: {
-    flexDirection: 'row',
-    marginTop: 16,
-    borderWidth: 2,
-    borderColor: color.line,
-    borderRadius: 10,
-    padding: 3,
-    gap: 3,
-  },
-  mode: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 7 },
-  modeOn: { backgroundColor: color.ink },
-  modeText: { fontFamily: font.bold, fontSize: 14, color: color.muted },
-  modeTextOn: { color: color.white },
-  modeNote: { fontFamily: font.regular, fontSize: 14, lineHeight: 20, color: color.body, marginTop: 10, minHeight: 20 },
   unit: { marginTop: 36 },
   unitLabel: { fontFamily: font.bold, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', color: color.red },
   unitTitle: { fontFamily: font.extrabold, fontSize: 24, color: color.ink, letterSpacing: -0.5, marginTop: 2 },

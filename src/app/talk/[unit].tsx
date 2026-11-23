@@ -12,6 +12,7 @@ import { useClipPlayer } from '../../audio';
 import { conversationVoice } from '../../config';
 import { useProgress } from '../../progress';
 import { Button } from '../../components/Button';
+import { IdleHint, SmallLink } from '../../components/IdleHint';
 import { color, font } from '../../theme';
 
 
@@ -35,7 +36,7 @@ export default function TalkScreen() {
 type Attempt = { score: number; heard: string };
 
 function Talk({ unit }: { unit: Unit }) {
-  const { mode, markDone } = useProgress();
+  const { mode, setMode, markDone } = useProgress();
   const showText = mode === 'noListen';
   const canSpeak = mode !== 'noTalk';
 
@@ -180,6 +181,18 @@ function Talk({ unit }: { unit: Unit }) {
       </ScrollView>
 
       <View style={s.footer}>
+        {mode === 'noListen' && <SmallLink label="Sound back on" onPress={() => setMode('speak')} />}
+        {mode === 'noTalk' && <SmallLink label="I can talk now" onPress={() => setMode('speak')} />}
+        {mode === 'speak' && (
+          <IdleHint
+            resetKey={`${turn}-${!!attempt}-${rec.isRecording}-${checking}-${revealed}`}
+            active={!attempt && !rec.isRecording && !checking}
+            hints={[
+              { label: "Can't listen?", onPress: () => setMode('noListen') },
+              { label: "Can't talk?", onPress: () => setMode('noTalk') },
+            ]}
+          />
+        )}
         {!canSpeak && (
           <>
             <Button label="Hear an answer" onPress={sayGoodAnswer} kind="secondary" />

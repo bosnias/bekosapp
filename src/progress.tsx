@@ -32,14 +32,15 @@ const load = () => {
 
 export function ProgressProvider({ children }: { children: ReactNode }) {
   const [done, setDone] = useState<Record<string, number>>(() => load()?.done ?? {});
-  const [mode, setMode] = useState<Mode>(() => load()?.mode ?? 'speak');
+  // Speaking is the default every time; the other modes are a temporary fallback.
+  const [mode, setMode] = useState<Mode>('speak');
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     try {
-      globalThis.localStorage?.setItem(KEY, JSON.stringify({ done, mode }));
+      globalThis.localStorage?.setItem(KEY, JSON.stringify({ done }));
     } catch {}
-  }, [done, mode]);
+  }, [done]);
 
   const markDone = (id: string, score: number) =>
     setDone((d) => ({ ...d, [id]: Math.max(d[id] ?? 0, score) }));
