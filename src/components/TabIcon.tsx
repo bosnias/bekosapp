@@ -1,8 +1,8 @@
-// Hand-made tab icons: a winding road, a microphone, a passport.
+// Hand-made tab icons: a winding road, a microphone, a passport, three lines.
 
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-export type TabName = 'index' | 'practice' | 'profile';
+export type TabName = 'index' | 'practice' | 'profile' | 'more';
 
 export function TabIcon({ name, tint, size = 28 }: { name: TabName; tint: string; size?: number }) {
   const common = { stroke: tint, strokeWidth: 2.4, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
@@ -28,6 +28,7 @@ export function TabIcon({ name, tint, size = 28 }: { name: TabName; tint: string
           <Path d="M10 20 L 18 20" {...common} />
         </>
       )}
+      {name === 'more' && <Path d="M5 8 L 23 8 M 5 14 L 23 14 M 5 20 L 23 20" {...common} strokeWidth={2.8} />}
     </Svg>
   );
 }

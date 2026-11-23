@@ -37,6 +37,7 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.bg }, animation: 'slide_from_right' }}>
         <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
         <Stack.Screen name="begin" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="pro" options={{ animation: 'slide_from_bottom' }} />
       </Stack>
     </ProgressProvider>
   );

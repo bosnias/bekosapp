@@ -5,6 +5,17 @@ export const links = {
   practiceCalls: '',
   // Booking page for the final conversation test.
   finalTest: '',
+  // Where "Support" goes, e.g. 'mailto:hello@bekos.app'.
+  support: '',
+  terms: '',
+  privacy: '',
+};
+
+// Bekos Pro prices shown on the premium screen. Placeholders: the real prices
+// get set in App Store Connect, and these should match them.
+export const proPrices = {
+  monthly: 9.99,
+  yearly: 59.99,
 };
 
 // Stand-in speakers, used until real native recordings exist. Each tap of Play

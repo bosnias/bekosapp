@@ -18,6 +18,7 @@ type Progress = {
   setMascotAt: (id: string) => void;
   mode: Mode;
   setMode: (m: Mode) => void;
+  streak: number; // days in a row with at least one finished stop
 };
 
 const Ctx = createContext<Progress | null>(null);
@@ -38,23 +39,28 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
   const [done, setDone] = useState<Record<string, number>>(() => load()?.done ?? {});
   const [introsSeen, setIntrosSeen] = useState<Record<string, boolean>>(() => load()?.introsSeen ?? {});
   const [mascotAt, setMascotAt] = useState<string | null>(() => load()?.mascotAt ?? null);
+  const [days, setDays] = useState<string[]>(() => load()?.days ?? []);
   // Speaking is the default every time; the other modes are a temporary fallback.
   const [mode, setMode] = useState<Mode>('speak');
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     try {
-      globalThis.localStorage?.setItem(KEY, JSON.stringify({ done, introsSeen, mascotAt }));
+      globalThis.localStorage?.setItem(KEY, JSON.stringify({ done, introsSeen, mascotAt, days }));
     } catch {}
-  }, [done, introsSeen, mascotAt]);
+  }, [done, introsSeen, mascotAt, days]);
 
-  const markDone = (id: string, score: number) =>
+  const markDone = (id: string, score: number) => {
     setDone((d) => ({ ...d, [id]: Math.max(d[id] ?? 0, score) }));
+    const today = dayKey(0);
+    setDays((ds) => (ds.includes(today) ? ds : [...ds.slice(-400), today]));
+  };
+  const streak = countStreak(days);
   const markIntroSeen = (unitId: string) => setIntrosSeen((m) => ({ ...m, [unitId]: true }));
 
   return (
     <Ctx.Provider
-      value={{ done, markDone, introsSeen, markIntroSeen, mascotAt, setMascotAt, mode, setMode }}
+      value={{ done, markDone, introsSeen, markIntroSeen, mascotAt, setMascotAt, mode, setMode, streak }}
     >
       {children}
     </Ctx.Provider>
@@ -65,4 +71,21 @@ export function useProgress() {
   const v = useContext(Ctx);
   if (!v) throw new Error('useProgress outside ProgressProvider');
   return v;
+}
+
+// Local date as YYYY-MM-DD, `back` days ago.
+function dayKey(back: number) {
+  const d = new Date();
+  d.setDate(d.getDate() - back);
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+// Counts back from today (or yesterday, so the streak survives until tonight).
+function countStreak(days: string[]) {
+  const set = new Set(days);
+  let start = set.has(dayKey(0)) ? 0 : set.has(dayKey(1)) ? 1 : -1;
+  if (start < 0) return 0;
+  let n = 0;
+  while (set.has(dayKey(start + n))) n++;
+  return n;
 }

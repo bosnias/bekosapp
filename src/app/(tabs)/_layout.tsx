@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-// The bottom bar: Journey, Practice, Profile.
+// The bottom bar: Journey, Practice, Profile, More.
 
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Tabs, type BottomTabBarProps } from 'expo-router/tabs';
@@ -8,7 +8,7 @@ import { TabIcon, type TabName } from '../../components/TabIcon';
 import { feel } from '../../feel';
 import { font, useColors, type Palette } from '../../theme';
 
-const LABELS: Record<TabName, string> = { index: 'Journey', practice: 'Practice', profile: 'Profile' };
+const LABELS: Record<TabName, string> = { index: 'Journey', practice: 'Practice', profile: 'Profile', more: 'More' };
 
 function TabBar({ state, navigateToTab }: BottomTabBarProps) {
   const { color, s } = useStyles();
@@ -47,6 +47,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" />
       <Tabs.Screen name="practice" />
       <Tabs.Screen name="profile" />
+      <Tabs.Screen name="more" />
     </Tabs>
   );
 }

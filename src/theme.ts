@@ -30,6 +30,12 @@ const light = {
   slotBg: '#F6F1E8',
   stampLine: '#D3C8B5',
   stampText: '#B3A893',
+  ground: '#E6EDD8', // the journey map's land
+  groundLine: '#DAE3C8',
+  tileTop: '#FBF7EF',
+  tileSide: '#C8BBA2',
+  bubble: '#FFFFFF',
+  proLine: '#DDA048',
 };
 
 export type Palette = typeof light;
@@ -60,6 +66,12 @@ const dark: Palette = {
   slotBg: '#1A2025',
   stampLine: '#36424A',
   stampText: '#6F787E',
+  ground: '#17211B',
+  groundLine: '#1E2A23',
+  tileTop: '#3A4842',
+  tileSide: '#232E29',
+  bubble: '#F3EFE7',
+  proLine: '#E2A84F',
 };
 
 export const palettes = { light, dark };
