@@ -18,9 +18,12 @@ export default async (req: Request) => {
   const voice = VOICES[params.get('voice') ?? ''] ? params.get('voice')! : 'bs-BA-VesnaNeural';
   const key = process.env.AZURE_SPEECH_KEY;
   // Accepts "westus2", "West US 2" or " westus2 " alike.
-  const region = (process.env.AZURE_SPEECH_REGION ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const raw = (process.env.AZURE_SPEECH_REGION ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  // Azure regions are short names like westus2. Anything long is a mistake (e.g. a pasted key).
+  const region = /^[a-z0-9]{4,24}$/.test(raw) ? raw : '';
   if (!text) return new Response('Missing text', { status: 400 });
-  if (!key || !region) return new Response('Speech key not set', { status: 500 });
+  if (!key) return new Response('Speech key not set', { status: 500 });
+  if (!region) return new Response('AZURE_SPEECH_REGION must be a region like westus2', { status: 500 });
 
   const lang = VOICES[voice];
   const ssml = `<speak version="1.0" xml:lang="${lang}"><voice name="${voice}"><prosody rate="-10%">${esc(text)}</prosody></voice></speak>`;
@@ -39,7 +42,7 @@ export default async (req: Request) => {
     body: ssml,
     });
   } catch {
-    return new Response(`Could not reach ${host}. Check AZURE_SPEECH_REGION in Netlify.`, { status: 502 });
+    return new Response("Could not reach Azure. Check that AZURE_SPEECH_REGION in Netlify is just the region, like westus2.", { status: 502 });
   }
   if (!res.ok) return new Response(await res.text(), { status: 502 });
 
