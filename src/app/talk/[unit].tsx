@@ -1,27 +1,19 @@
 // End-of-unit conversation: they say a line, you answer. Like talking with a
 // native speaker, you have to respond, not repeat.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import {
-  RecordingPresets,
-  requestRecordingPermissionsAsync,
-  setAudioModeAsync,
-  useAudioRecorder,
-  useAudioRecorderState,
-} from 'expo-audio';
 import { findUnit, units, type Unit } from '../../lessons';
 import { scorePhrase } from '../../score';
-import { transcribe } from '../../api';
+import { useAttempt } from '../../useAttempt';
 import { useClipPlayer } from '../../audio';
 import { conversationVoice } from '../../config';
 import { useProgress } from '../../progress';
 import { Button } from '../../components/Button';
 import { color, font } from '../../theme';
 
-const MAX_SECONDS = 8;
 
 export default function TalkScreen() {
   const { unit: unitId } = useLocalSearchParams<{ unit: string }>();
@@ -51,16 +43,17 @@ function Talk({ unit }: { unit: Unit }) {
   const [revealed, setRevealed] = useState(false);
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [scores, setScores] = useState<number[]>([]);
-  const [checking, setChecking] = useState(false);
-  const [error, setError] = useState('');
   const [finished, setFinished] = useState(false);
 
   const clip = useClipPlayer();
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const rec = useAudioRecorderState(recorder, 200);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const t = unit.talk[turn];
+  const rec = useAttempt((heard) => {
+    // Any accepted answer counts; keep the best match.
+    const best = Math.max(...t.you.accept.map((a) => scorePhrase(a, heard).score));
+    setAttempt({ score: best, heard });
+  });
+  const { checking, error } = rec;
   const unitNumber = units.findIndex((u) => u.id === unit.id) + 1;
   const nextUnit = units[unitNumber]; // the one after this
 
@@ -75,19 +68,12 @@ function Talk({ unit }: { unit: Unit }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turn, finished]);
 
-  useEffect(
-    () => () => {
-      if (timer.current) clearTimeout(timer.current);
-    },
-    [],
-  );
-
   const nextTurn = (score: number) => {
     const all = [...scores, score];
     setScores(all);
     setAttempt(null);
     setRevealed(false);
-    setError('');
+    rec.setError('');
     if (turn + 1 < unit.talk.length) setTurn(turn + 1);
     else {
       const avg = Math.round(all.reduce((a, b) => a + b, 0) / all.length);
@@ -96,39 +82,9 @@ function Talk({ unit }: { unit: Unit }) {
     }
   };
 
-  const startRecording = async () => {
-    setError('');
+  const startRecording = () => {
     setAttempt(null);
-    const perm = await requestRecordingPermissionsAsync();
-    if (!perm.granted) {
-      setError("Bekos needs your microphone to hear you. Turn it on in your settings, or switch to Can't talk.");
-      return;
-    }
-    clip.player.pause();
-    await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
-    await recorder.prepareToRecordAsync();
-    recorder.record();
-    timer.current = setTimeout(stopRecording, MAX_SECONDS * 1000);
-  };
-
-  const stopRecording = async () => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = null;
-    await recorder.stop();
-    await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false });
-    const uri = recorder.uri;
-    if (!uri) return;
-    setChecking(true);
-    try {
-      const heard = await transcribe(uri);
-      // Any accepted answer counts; keep the best match.
-      const best = Math.max(...t.you.accept.map((a) => scorePhrase(a, heard).score));
-      setAttempt({ score: best, heard });
-    } catch {
-      setError("Couldn't check that one. Try again.");
-    } finally {
-      setChecking(false);
-    }
+    rec.start(t.you.accept.reduce((a, b) => (b.length > a.length ? b : a)), () => clip.player.pause());
   };
 
   if (finished) {
@@ -234,7 +190,7 @@ function Talk({ unit }: { unit: Unit }) {
         {canSpeak && !checking && (
           <>
             {rec.isRecording ? (
-              <Button label={`Done  ${Math.floor(rec.durationMillis / 1000)}s`} onPress={stopRecording} kind="gold" />
+              <Button label={`Done  ·  ${rec.secondsLeft}s left`} onPress={rec.stop} kind="gold" />
             ) : attempt ? (
               <>
                 <View style={s.pair}>

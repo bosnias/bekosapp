@@ -2,16 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import {
-  RecordingPresets,
-  requestRecordingPermissionsAsync,
-  setAudioModeAsync,
-  useAudioRecorder,
-  useAudioRecorderState,
-} from 'expo-audio';
 import { allPhrases, findPhrase, nextPhrase, unitOf, type Phrase } from '../../lessons';
 import { scorePhrase, type ScoreResult } from '../../score';
-import { transcribe } from '../../api';
+import { useAttempt } from '../../useAttempt';
 import { playToEnd, useClipPlayer, useSpeakers } from '../../audio';
 import { useProgress } from '../../progress';
 import { Button } from '../../components/Button';
@@ -19,7 +12,6 @@ import { Scene } from '../../components/Scene';
 import { color, font } from '../../theme';
 
 type Step = 'hear' | 'understand' | 'say';
-const MAX_SECONDS = 8;
 const SHADOW_TIMES = 3;
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -52,21 +44,21 @@ function Lesson({ phrase }: { phrase: Phrase }) {
   const [plays, setPlays] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [shadowing, setShadowing] = useState(0); // 0 = off, else round number
-  const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<ScoreResult | null>(null);
-  const [error, setError] = useState('');
 
   const speakers = useSpeakers(phrase.text, phrase.recordings);
   const clip = useClipPlayer();
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const rec = useAudioRecorderState(recorder, 200);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const attempt = useAttempt((heard) => {
+    const r = scorePhrase(phrase.text, heard);
+    setResult(r);
+    markDone(phrase.id, r.score);
+  });
+  const { checking, error } = attempt;
   const alive = useRef(true);
 
   useEffect(
     () => () => {
       alive.current = false;
-      if (timer.current) clearTimeout(timer.current);
     },
     [],
   );
@@ -95,7 +87,7 @@ function Lesson({ phrase }: { phrase: Phrase }) {
 
   // "Say it with me": the same speaker plays a few times while you speak along.
   const shadow = async () => {
-    setError('');
+    attempt.setError('');
     clip.player.pause();
     if (plays === 0) await speakers.play();
     const player = speakers.current();
@@ -107,40 +99,12 @@ function Lesson({ phrase }: { phrase: Phrase }) {
     if (alive.current) setShadowing(0);
   };
 
-  const startRecording = async () => {
-    setError('');
+  const startRecording = () => {
     setResult(null);
-    const perm = await requestRecordingPermissionsAsync();
-    if (!perm.granted) {
-      setError("Bekos needs your microphone to hear you. Turn it on in your settings, or switch to Can't talk.");
-      return;
-    }
-    speakers.stopAll();
-    clip.player.pause();
-    await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
-    await recorder.prepareToRecordAsync();
-    recorder.record();
-    timer.current = setTimeout(stopRecording, MAX_SECONDS * 1000);
-  };
-
-  const stopRecording = async () => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = null;
-    await recorder.stop();
-    await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false });
-    const uri = recorder.uri;
-    if (!uri) return;
-    setChecking(true);
-    try {
-      const heard = await transcribe(uri);
-      const r = scorePhrase(phrase.text, heard);
-      setResult(r);
-      markDone(phrase.id, r.score);
-    } catch {
-      setError("Couldn't check that one. Try again.");
-    } finally {
-      setChecking(false);
-    }
+    attempt.start(phrase.text, () => {
+      speakers.stopAll();
+      clip.player.pause();
+    });
   };
 
   const stepNumber = step === 'hear' ? 0 : step === 'understand' ? 1 : 2;
@@ -319,8 +283,8 @@ function Lesson({ phrase }: { phrase: Phrase }) {
 
         {step === 'say' && canSpeak && !checking && !busy && (
           <>
-            {rec.isRecording ? (
-              <Button label={`Done  ${Math.floor(rec.durationMillis / 1000)}s`} onPress={stopRecording} kind="gold" />
+            {attempt.isRecording ? (
+              <Button label={`Done  ·  ${attempt.secondsLeft}s left`} onPress={attempt.stop} kind="gold" />
             ) : result ? (
               <>
                 {!showText && <Button label="Hear it again" onPress={play} kind="secondary" />}
