@@ -11,7 +11,9 @@ import { useAttempt } from '../../useAttempt';
 import { useClipPlayer } from '../../audio';
 import { conversationVoice } from '../../config';
 import { useProgress } from '../../progress';
+import { toMap } from '../../nav';
 import { Button } from '../../components/Button';
+import { AssetSlot } from '../../components/AssetSlot';
 import { IdleHint, SmallLink } from '../../components/IdleHint';
 import { color, font } from '../../theme';
 
@@ -25,7 +27,7 @@ export default function TalkScreen() {
         <Talk key={unit.id} unit={unit} />
       ) : (
         <View style={s.missing}>
-          <Text style={s.big}>Conversation not found.</Text>
+          <Text style={s.big}>Not found.</Text>
           <Button label="Back to lessons" onPress={() => router.replace('/')} />
         </View>
       )}
@@ -59,9 +61,9 @@ function Talk({ unit }: { unit: Unit }) {
   const nextUnit = units[unitNumber]; // the one after this
 
   const sayTheirLine = () => {
-    if (!showText) clip.play(t.they.text, { voice: conversationVoice, audio: t.they.audio });
+    if (!showText) clip.play(t.they.text, { voice: unit.encounter.voice ?? conversationVoice, audio: t.they.audio });
   };
-  const sayGoodAnswer = () => clip.play(t.you.accept[0], { voice: conversationVoice });
+  const sayGoodAnswer = () => clip.play(t.you.accept[0], { voice: unit.companion.voice ?? conversationVoice });
 
   // Each new turn starts with them talking.
   useEffect(() => {
@@ -94,7 +96,7 @@ function Talk({ unit }: { unit: Unit }) {
       <View style={s.wrap}>
         <ScrollView contentContainerStyle={[s.body, s.center]}>
           <Image source={require('../../../assets/mascot.png')} style={s.mascot} resizeMode="contain" />
-          <Text style={s.big}>Conversation done.</Text>
+          <Text style={s.big}>You made it through {unit.place}.</Text>
           {canSpeak ? (
             <Text style={s.sub}>
               Your average: <Text style={s.strong}>{avg}</Text>. Go again any time to beat it.
@@ -104,10 +106,8 @@ function Talk({ unit }: { unit: Unit }) {
           )}
         </ScrollView>
         <View style={s.footer}>
-          <Button label="Back to lessons" onPress={() => router.replace('/')} kind="secondary" />
-          {nextUnit && (
-            <Button label={`Next: ${nextUnit.title}`} onPress={() => router.replace(`/lesson/${nextUnit.phrases[0].id}`)} />
-          )}
+          <Button label="Back to the map" onPress={toMap} kind={nextUnit ? 'secondary' : 'primary'} />
+          {nextUnit && <Button label={`On to ${nextUnit.place}`} onPress={() => router.replace(`/leg/${nextUnit.id}`)} />}
         </View>
       </View>
     );
@@ -118,12 +118,10 @@ function Talk({ unit }: { unit: Unit }) {
   return (
     <View style={s.wrap}>
       <View style={s.top}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} hitSlop={12}>
-          <Text style={s.back}>‹ Lessons</Text>
+        <Pressable accessibilityRole="button" onPress={toMap} hitSlop={12}>
+          <Text style={s.back}>‹ Map</Text>
         </Pressable>
-        <Text style={s.position}>
-          Unit {unitNumber} · Conversation
-        </Text>
+        <Text style={s.position}>{unit.place}</Text>
       </View>
       <View style={s.progress}>
         {unit.talk.map((_, i) => (
@@ -132,7 +130,14 @@ function Talk({ unit }: { unit: Unit }) {
       </View>
 
       <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
-        <Text style={s.label}>They say</Text>
+        <View style={s.who}>
+          <AssetSlot name={unit.encounter.art} image={unit.encounter.image} style={s.portrait} compact />
+          <View style={{ flex: 1 }}>
+            <Text style={s.whoName}>{unit.encounter.name}</Text>
+            <Text style={s.whoRole}>{unit.encounter.role}</Text>
+          </View>
+        </View>
+        <Text style={[s.label, { marginTop: 20 }]}>{unit.encounter.name} says</Text>
         <View style={s.bubble}>
           {showText ? (
             <>
@@ -266,6 +271,10 @@ const s = StyleSheet.create({
   big: { fontFamily: font.extrabold, fontSize: 30, color: color.ink, letterSpacing: -0.8 },
   sub: { fontFamily: font.regular, fontSize: 16, lineHeight: 24, color: color.body, textAlign: 'center' },
   strong: { fontFamily: font.bold, color: color.ink },
+  who: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  portrait: { width: 56, height: 56 },
+  whoName: { fontFamily: font.extrabold, fontSize: 18, color: color.ink },
+  whoRole: { fontFamily: font.regular, fontSize: 14, color: color.muted },
   label: { fontFamily: font.bold, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', color: color.red },
   bubble: {
     marginTop: 10,

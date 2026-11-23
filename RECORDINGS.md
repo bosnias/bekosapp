@@ -29,6 +29,25 @@ One speaker plays "them". Also record the answers so learners can hear a good on
 - `talk-hi-4-they`: Vidimo se! (See you!)
 - `talk-hi-4-answer`: Vidimo se!
 
+## When you're stuck
+
+- `ne-razumijem`: Ne razumijem. (I don't understand.)
+- `mozes-li-ponoviti`: Možeš li ponoviti? (Can you repeat that?)
+- `polahko`: Polahko. (Slowly. Take it easy.)
+- `sta-to-znaci`: Šta to znači? (What does that mean?)
+- `ne-znam`: Ne znam. (I don't know.)
+
+### When you're stuck: conversation
+
+One speaker plays "them". Also record the answers so learners can hear a good one.
+
+- `talk-stuck-1-they`: Odakle si? (Where are you from?)
+- `talk-stuck-1-answer`: Ne razumijem.
+- `talk-stuck-2-they`: Odakle si ti? (Where are you from?)
+- `talk-stuck-2-answer`: Možeš li ponoviti?
+- `talk-stuck-3-they`: Burek ili pita? (Burek or pita?)
+- `talk-stuck-3-answer`: Ne znam.
+
 ## With family
 
 - `dobro-jutro`: Dobro jutro. (Good morning.)
@@ -51,25 +70,6 @@ One speaker plays "them". Also record the answers so learners can hear a good on
 - `talk-family-3-answer`: Volim te.
 - `talk-family-4-they`: Laku noć! (Good night!)
 - `talk-family-4-answer`: Laku noć.
-
-## When you're stuck
-
-- `ne-razumijem`: Ne razumijem. (I don't understand.)
-- `mozes-li-ponoviti`: Možeš li ponoviti? (Can you repeat that?)
-- `polahko`: Polahko. (Slowly. Take it easy.)
-- `sta-to-znaci`: Šta to znači? (What does that mean?)
-- `ne-znam`: Ne znam. (I don't know.)
-
-### When you're stuck: conversation
-
-One speaker plays "them". Also record the answers so learners can hear a good one.
-
-- `talk-stuck-1-they`: Odakle si? (Where are you from?)
-- `talk-stuck-1-answer`: Ne razumijem.
-- `talk-stuck-2-they`: Odakle si ti? (Where are you from?)
-- `talk-stuck-2-answer`: Možeš li ponoviti?
-- `talk-stuck-3-they`: Burek ili pita? (Burek or pita?)
-- `talk-stuck-3-answer`: Ne znam.
 
 ## At the table
 
@@ -103,18 +103,26 @@ One illustration per phrase showing the scene, named `<phrase>.png` (4:3), for e
 - `hvala-lijepa.png`: Your neighbor hands you a plate of baklava.
 - `nema-problema.png`: A friend thanks you for helping them move.
 - `vidimo-se.png`: You're heading out of a friend's place.
+- `ne-razumijem.png`: Someone says something you didn't catch at all.
+- `mozes-li-ponoviti.png`: You almost caught it. You need to hear it once more.
+- `polahko.png`: Your uncle is talking way too fast.
+- `sta-to-znaci.png`: Someone uses a word you've never heard.
+- `ne-znam.png`: Someone asks you something you can't answer.
 - `dobro-jutro.png`: You walk into the kitchen. Everyone's already up.
 - `laku-noc.png`: Everyone's heading to bed.
 - `volim-te.png`: You hug your mom before you leave.
 - `falis-mi.png`: You call your grandpa from far away.
 - `kako-je-nana.png`: You call your uncle and want news about grandma.
 - `hajmo-jesti.png`: Dinner is on the table and everyone's still talking.
-- `ne-razumijem.png`: Someone says something you didn't catch at all.
-- `mozes-li-ponoviti.png`: You almost caught it. You need to hear it once more.
-- `polahko.png`: Your uncle is talking way too fast.
-- `sta-to-znaci.png`: Someone uses a word you've never heard.
-- `ne-znam.png`: Someone asks you something you can't answer.
 - `prijatno.png`: The food is served and everyone's about to eat.
 - `hoces-kahvu.png`: Grandma is making coffee and looks at you.
 - `jos-malo.png`: Grandma asks if you want more, and you do.
 - `sit-sam.png`: Grandma tries to give you a third plate.
+
+## Journey art
+
+Every placeholder in the app shows the file name it's waiting for. Put finished files in `assets/journey/`.
+
+- `mascot-bosnia-burek.png`: the Bosnian mascot (expressions: neutral, happy, side-eye, celebrating)
+- `intro-animation-bosnia.mp4`: opening animation, the burek on the plane, landing
+- For each leg (1 to 4): `leg-N-backdrop.png` (the place), `leg-N-companion.png` (who you travel with), `leg-N-encounter.png` (who you meet at the end)

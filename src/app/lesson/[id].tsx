@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { allPhrases, findPhrase, nextPhrase, unitOf, type Phrase } from '../../lessons';
+import { findPhrase, unitOf, type Phrase } from '../../lessons';
 import { scorePhrase, type ScoreResult } from '../../score';
 import { useAttempt } from '../../useAttempt';
 import { playToEnd, useClipPlayer, useSpeakers } from '../../audio';
 import { useProgress } from '../../progress';
+import { toMap } from '../../nav';
 import { Button } from '../../components/Button';
 import { Scene } from '../../components/Scene';
 import { IdleHint, SmallLink } from '../../components/IdleHint';
@@ -24,7 +25,7 @@ export default function LessonScreen() {
       <SafeAreaView style={s.screen}>
         <View style={s.missing}>
           <Text style={s.title}>Lesson not found.</Text>
-          <Button label="Back to lessons" onPress={() => router.replace('/')} />
+          <Button label="Back to the map" onPress={() => router.replace('/')} />
         </View>
       </SafeAreaView>
     );
@@ -64,16 +65,14 @@ function Lesson({ phrase }: { phrase: Phrase }) {
     [],
   );
 
-  const position = allPhrases.findIndex((p) => p.id === phrase.id) + 1;
-  const next = nextPhrase(phrase.id);
-  const unit = unitOf(phrase.id);
+    const unit = unitOf(phrase.id);
   const lastInUnit = unit?.phrases[unit.phrases.length - 1]?.id === phrase.id;
+  // Back to the map after each phrase so you see the mascot hop; the last phrase of a leg leads into its encounter.
   const goNext = () => {
     if (lastInUnit && unit) router.replace(`/talk/${unit.id}`);
-    else if (next) router.replace(`/lesson/${next.id}`);
-    else router.back();
+    else toMap();
   };
-  const nextLabel = lastInUnit ? 'Start the conversation' : next ? 'Next phrase' : 'Back to lessons';
+  const nextLabel = lastInUnit && unit ? `Meet ${unit.encounter.name}` : 'Continue';
 
   const play = async () => {
     clip.player.pause();
@@ -120,12 +119,10 @@ function Lesson({ phrase }: { phrase: Phrase }) {
   return (
     <View style={s.lesson}>
       <View style={s.top}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} hitSlop={12}>
-          <Text style={s.back}>‹ Lessons</Text>
+        <Pressable accessibilityRole="button" onPress={toMap} hitSlop={12}>
+          <Text style={s.back}>‹ Map</Text>
         </Pressable>
-        <Text style={s.position}>
-          {position} / {allPhrases.length}
-        </Text>
+        {unit && <Text style={s.position}>{unit.place}</Text>}
       </View>
       <View style={s.progress}>
         {labels.map((label, i) => (

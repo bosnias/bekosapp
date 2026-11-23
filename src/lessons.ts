@@ -31,14 +31,52 @@ export type Turn = {
   you: { hint: string; accept: string[] };
 };
 
-export type Unit = { id: string; title: string; phrases: Phrase[]; talk: Turn[] };
+// The course is a journey through the country. Each unit is one leg of the trip:
+// a place, a person you travel with, a bit of story, the phrases you pick up on
+// the way, and an encounter at the end where you have to use them.
+//
+// Story and art are placeholders until written and drawn. Anything with a
+// missing `art` file shows its file name in a placeholder box, so it's clear
+// what still needs making. Art files go in assets/journey/.
+export type Person = { name: string; role: string; art: string; image?: number; voice?: string };
 
-export const course = { language: 'Bosnian', locale: 'bs-BA' };
+export type Unit = {
+  id: string;
+  title: string; // what you learn on this leg
+  place: string; // where the leg happens
+  art: string; // backdrop file name for the leg intro
+  image?: number; // the backdrop, once it exists
+  companion: Person; // who you're traveling with
+  story: string; // intro shown when you reach the leg
+  encounter: Person; // who you talk to at the end of the leg
+  phrases: Phrase[];
+  talk: Turn[];
+};
+
+// The trip starts on the plane. Each language has its own mascot (the bread of
+// that country) and its own opening animation. Placeholders until made.
+export const course = {
+  language: 'Bosnian',
+  country: 'Bosnia and Herzegovina',
+  locale: 'bs-BA',
+  mascot: { name: 'Burek', art: 'mascot-bosnia-burek.png' },
+  intro: {
+    art: 'intro-animation-bosnia.mp4 (burek on the plane, landing)',
+    title: 'Your trip starts on the plane.',
+    text: 'Story goes here: why you are flying to Bosnia, who is waiting for you, and what you will need to say the moment you land.',
+  },
+};
 
 export const units: Unit[] = [
   {
     id: 'hi',
     title: 'Saying hi',
+    place: 'The airport',
+    art: 'leg-1-backdrop.png',
+    companion: { name: 'Companion 1', role: 'Travels with you', art: 'leg-1-companion.png' },
+    story:
+      'Story goes here: where you are, who you are with, and why you are on the road. Ends with the reason you need these phrases.',
+    encounter: { name: 'Someone at arrivals', role: 'Someone you meet on the way', art: 'leg-1-encounter.png' },
     talk: [
       { they: { text: 'Zdravo! Šta ima?', meaning: "Hi! What's up?" }, you: { hint: 'Say: nothing much.', accept: ['Evo, ništa.', 'Ništa.'] } },
       { they: { text: 'Kako si?', meaning: 'How are you?' }, you: { hint: "Say you're good.", accept: ['Dobro sam.'] } },
@@ -128,8 +166,82 @@ export const units: Unit[] = [
     ],
   },
   {
+    id: 'stuck',
+    title: "When you're stuck",
+    place: 'The ride into town',
+    art: 'leg-2-backdrop.png',
+    companion: { name: 'Companion 3', role: 'Travels with you', art: 'leg-2-companion.png' },
+    story:
+      'Story goes here: where you are, who you are with, and why you are on the road. Ends with the reason you need these phrases.',
+    encounter: { name: 'Your taxi driver', role: 'Someone you meet on the way', art: 'leg-2-encounter.png' },
+    talk: [
+      { they: { text: 'Odakle si?', meaning: 'Where are you from?' }, you: { hint: "You didn't get that. Say so.", accept: ['Ne razumijem.'] } },
+      { they: { text: 'Odakle si ti?', meaning: 'Where are you from?' }, you: { hint: 'Ask them to repeat it, or to slow down.', accept: ['Možeš li ponoviti?', 'Polahko.'] } },
+      { they: { text: 'Burek ili pita?', meaning: 'Burek or pita?' }, you: { hint: "You can't decide. Say you don't know.", accept: ['Ne znam.'] } },
+    ],
+    phrases: [
+      {
+        id: 'ne-razumijem',
+        text: 'Ne razumijem.',
+        meaning: "I don't understand.",
+        scene: "Someone says something you didn't catch at all.",
+        words: [
+          { word: 'ne', meaning: 'not' },
+          { word: 'razumijem', meaning: 'I understand' },
+        ],
+      },
+      {
+        id: 'mozes-li-ponoviti',
+        text: 'Možeš li ponoviti?',
+        meaning: 'Can you repeat that?',
+        scene: 'You almost caught it. You need to hear it once more.',
+        note: 'The short middle word turns a sentence into a question.',
+        words: [
+          { word: 'možeš', meaning: 'you can' },
+          { word: 'li', meaning: '(question)' },
+          { word: 'ponoviti', meaning: 'to repeat' },
+        ],
+      },
+      {
+        id: 'polahko',
+        text: 'Polahko.',
+        meaning: 'Slowly. Take it easy.',
+        scene: 'Your uncle is talking way too fast.',
+        note: 'A very Bosnian word. Use it when someone talks too fast, or to tell a friend to relax.',
+        words: [{ word: 'polahko', meaning: 'slowly, easy' }],
+      },
+      {
+        id: 'sta-to-znaci',
+        text: 'Šta to znači?',
+        meaning: 'What does that mean?',
+        scene: "Someone uses a word you've never heard.",
+        words: [
+          { word: 'šta', meaning: 'what' },
+          { word: 'to', meaning: 'that' },
+          { word: 'znači', meaning: 'means' },
+        ],
+      },
+      {
+        id: 'ne-znam',
+        text: 'Ne znam.',
+        meaning: "I don't know.",
+        scene: "Someone asks you something you can't answer.",
+        words: [
+          { word: 'ne', meaning: 'not' },
+          { word: 'znam', meaning: 'I know' },
+        ],
+      },
+    ],
+  },
+  {
     id: 'family',
     title: 'With family',
+    place: 'Family home',
+    art: 'leg-3-backdrop.png',
+    companion: { name: 'Companion 2', role: 'Travels with you', art: 'leg-3-companion.png' },
+    story:
+      'Story goes here: where you are, who you are with, and why you are on the road. Ends with the reason you need these phrases.',
+    encounter: { name: 'Your uncle', role: 'Someone you meet on the way', art: 'leg-3-encounter.png' },
     talk: [
       { they: { text: 'Dobro jutro!', meaning: 'Good morning!' }, you: { hint: 'Say good morning back.', accept: ['Dobro jutro.'] } },
       { they: { text: 'Nana te pozdravlja.', meaning: 'Grandma says hi.' }, you: { hint: 'Ask how grandma is.', accept: ['Kako je nana?'] } },
@@ -205,70 +317,14 @@ export const units: Unit[] = [
     ],
   },
   {
-    id: 'stuck',
-    title: "When you're stuck",
-    talk: [
-      { they: { text: 'Odakle si?', meaning: 'Where are you from?' }, you: { hint: "You didn't get that. Say so.", accept: ['Ne razumijem.'] } },
-      { they: { text: 'Odakle si ti?', meaning: 'Where are you from?' }, you: { hint: 'Ask them to repeat it, or to slow down.', accept: ['Možeš li ponoviti?', 'Polahko.'] } },
-      { they: { text: 'Burek ili pita?', meaning: 'Burek or pita?' }, you: { hint: "You can't decide. Say you don't know.", accept: ['Ne znam.'] } },
-    ],
-    phrases: [
-      {
-        id: 'ne-razumijem',
-        text: 'Ne razumijem.',
-        meaning: "I don't understand.",
-        scene: "Someone says something you didn't catch at all.",
-        words: [
-          { word: 'ne', meaning: 'not' },
-          { word: 'razumijem', meaning: 'I understand' },
-        ],
-      },
-      {
-        id: 'mozes-li-ponoviti',
-        text: 'Možeš li ponoviti?',
-        meaning: 'Can you repeat that?',
-        scene: 'You almost caught it. You need to hear it once more.',
-        note: 'The short middle word turns a sentence into a question.',
-        words: [
-          { word: 'možeš', meaning: 'you can' },
-          { word: 'li', meaning: '(question)' },
-          { word: 'ponoviti', meaning: 'to repeat' },
-        ],
-      },
-      {
-        id: 'polahko',
-        text: 'Polahko.',
-        meaning: 'Slowly. Take it easy.',
-        scene: 'Your uncle is talking way too fast.',
-        note: 'A very Bosnian word. Use it when someone talks too fast, or to tell a friend to relax.',
-        words: [{ word: 'polahko', meaning: 'slowly, easy' }],
-      },
-      {
-        id: 'sta-to-znaci',
-        text: 'Šta to znači?',
-        meaning: 'What does that mean?',
-        scene: "Someone uses a word you've never heard.",
-        words: [
-          { word: 'šta', meaning: 'what' },
-          { word: 'to', meaning: 'that' },
-          { word: 'znači', meaning: 'means' },
-        ],
-      },
-      {
-        id: 'ne-znam',
-        text: 'Ne znam.',
-        meaning: "I don't know.",
-        scene: "Someone asks you something you can't answer.",
-        words: [
-          { word: 'ne', meaning: 'not' },
-          { word: 'znam', meaning: 'I know' },
-        ],
-      },
-    ],
-  },
-  {
     id: 'food',
     title: 'At the table',
+    place: 'The table',
+    art: 'leg-4-backdrop.png',
+    companion: { name: 'Companion 4', role: 'Travels with you', art: 'leg-4-companion.png' },
+    story:
+      'Story goes here: where you are, who you are with, and why you are on the road. Ends with the reason you need these phrases.',
+    encounter: { name: 'Grandma', role: 'Someone you meet on the way', art: 'leg-4-encounter.png' },
     talk: [
       { they: { text: 'Hoćeš kahvu?', meaning: 'Want some coffee?' }, you: { hint: 'Say thank you.', accept: ['Hvala lijepa.', 'Hvala.'] } },
       { they: { text: 'Prijatno!', meaning: 'Enjoy your meal!' }, you: { hint: 'Say it back.', accept: ['Prijatno!'] } },
@@ -326,6 +382,14 @@ export const allPhrases = units.flatMap((u) => u.phrases);
 export const findPhrase = (id: string) => allPhrases.find((p) => p.id === id);
 
 export const findUnit = (id: string) => units.find((u) => u.id === id);
+
+// Every stop on the journey, in order: each phrase, then the leg's encounter.
+export type Stop = { kind: 'phrase'; id: string; unit: Unit; phrase: Phrase } | { kind: 'encounter'; id: string; unit: Unit };
+
+export const stops: Stop[] = units.flatMap((u) => [
+  ...u.phrases.map((p) => ({ kind: 'phrase' as const, id: p.id, unit: u, phrase: p })),
+  { kind: 'encounter' as const, id: `talk-${u.id}`, unit: u },
+]);
 
 export const unitOf = (phraseId: string) => units.find((u) => u.phrases.some((p) => p.id === phraseId));
 
