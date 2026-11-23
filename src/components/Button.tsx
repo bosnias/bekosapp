@@ -3,21 +3,21 @@
 import { useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text } from 'react-native';
 import { feel } from '../feel';
-import { color, font } from '../theme';
+import { font, useColors, type Palette } from '../theme';
 
 type Kind = 'primary' | 'secondary' | 'gold';
 
 const DEPTH = 5;
 
-const look: Record<Kind, { face: string; base: string; text: string; border?: string }> = {
-  primary: { face: color.red, base: color.redDark, text: color.white },
-  secondary: { face: color.white, base: '#D9D2C5', text: color.red, border: '#D9D2C5' },
-  gold: { face: color.gold, base: color.goldDark, text: color.ink },
-};
+const looks = (color: Palette): Record<Kind, { face: string; base: string; text: string; border?: string }> => ({
+  primary: { face: color.red, base: color.redDark, text: color.onAccent },
+  secondary: { face: color.bg, base: color.raised, text: color.red, border: color.raised },
+  gold: { face: color.gold, base: color.goldDark, text: color.onGold },
+});
 
 export function Button({ label, onPress, kind = 'primary' }: { label: string; onPress: () => void; kind?: Kind }) {
   const sink = useRef(new Animated.Value(0)).current;
-  const l = look[kind];
+  const l = looks(useColors())[kind];
 
   const down = () => {
     feel.tap();

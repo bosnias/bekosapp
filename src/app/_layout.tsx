@@ -11,11 +11,12 @@ import {
   Inter_900Black,
 } from '@expo-google-fonts/inter';
 import { ProgressProvider } from '../progress';
-import { color } from '../theme';
+import { useColors } from '../theme';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const color = useColors();
   const [loaded, error] = useFonts({
     Inter_400Regular,
     Inter_600SemiBold,
@@ -32,8 +33,8 @@ export default function RootLayout() {
 
   return (
     <ProgressProvider>
-      <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.white }, animation: 'slide_from_right' }}>
+      <StatusBar style="auto" />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.bg }, animation: 'slide_from_right' }}>
         <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
         <Stack.Screen name="begin" options={{ animation: 'slide_from_bottom' }} />
       </Stack>

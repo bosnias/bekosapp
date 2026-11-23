@@ -26,7 +26,7 @@ import { links } from '../../config';
 import { AssetSlot } from '../../components/AssetSlot';
 import { Bar, Pop } from '../../components/Motion';
 import { feel } from '../../feel';
-import { color, font } from '../../theme';
+import { font, useColors, type Palette } from '../../theme';
 
 const NODE = 72;
 const ENCOUNTER_W = 132;
@@ -42,6 +42,7 @@ type Placed = { stop: Stop; x: number; y: number; done: boolean };
 type HeaderPlaced = { unit: Unit; y: number; expanded: boolean; progress: number };
 
 export default function Map() {
+  const { color, s } = useStyles();
   const { done, introsSeen, mascotAt, setMascotAt, mode } = useProgress();
   const showText = mode === 'noListen';
   const [width, setWidth] = useState(0);
@@ -203,13 +204,13 @@ export default function Map() {
           {!!width && (
             <Svg width={width} height={layout.height} style={StyleSheet.absoluteFill}>
               {roads.map((r) => (
-                <Path key={`${r.id}-road`} d={r.d} stroke="#ECE4D6" strokeWidth={22} strokeLinecap="round" fill="none" />
+                <Path key={`${r.id}-road`} d={r.d} stroke={color.road} strokeWidth={22} strokeLinecap="round" fill="none" />
               ))}
               {roads.map((r) => (
                 <Path
                   key={`${r.id}-line`}
                   d={r.d}
-                  stroke={color.white}
+                  stroke={color.bg}
                   strokeWidth={3}
                   strokeDasharray="10 12"
                   strokeLinecap="round"
@@ -268,6 +269,7 @@ export default function Map() {
 }
 
 function LegHeader({ header, onPress }: { header: HeaderPlaced; onPress: () => void }) {
+  const { color, s } = useStyles();
   const { unit, expanded, progress } = header;
   return (
     <Pressable
@@ -276,7 +278,7 @@ function LegHeader({ header, onPress }: { header: HeaderPlaced; onPress: () => v
         feel.select();
         onPress();
       }}
-      style={({ pressed }) => [s.leg, { top: header.y }, pressed && { backgroundColor: '#F6E8D0' }]}
+      style={({ pressed }) => [s.leg, { top: header.y }, pressed && { backgroundColor: color.cardPressed }]}
     >
       <AssetSlot name={unit.companion.art} image={unit.companion.image} style={s.legArt} compact />
       <View style={{ flex: 1, gap: 2 }}>
@@ -284,7 +286,7 @@ function LegHeader({ header, onPress }: { header: HeaderPlaced; onPress: () => v
         <Text style={s.legSub} numberOfLines={1}>
           {unit.title} · with {unit.companion.name}
         </Text>
-        <Bar value={progress} fill={color.gold} track="#E8DDCB" style={{ marginTop: 6, height: 7 }} />
+        <Bar value={progress} fill={color.gold} track={color.track} style={{ marginTop: 6, height: 7 }} />
       </View>
       <Text style={s.legToggle}>{expanded ? 'Hide' : 'Show'}</Text>
     </Pressable>
@@ -303,6 +305,7 @@ function StopNode({
   showText: boolean;
   onPress: () => void;
 }) {
+  const { color, s } = useStyles();
   const { stop, done } = node;
   const encounter = stop.kind === 'encounter';
   const w = encounter ? ENCOUNTER_W : NODE;
@@ -321,7 +324,7 @@ function StopNode({
   }, [isCurrent, pulse]);
 
   const tone = done ? s.nodeDone : isCurrent ? s.nodeCurrent : s.nodeAhead;
-  const base = done ? color.goldDark : isCurrent ? color.redDark : '#D9D1C3';
+  const base = done ? color.goldDark : isCurrent ? color.redDark : color.raised;
 
   return (
     <View style={[s.nodeWrap, { left: node.x - 80, top: node.y - NODE / 2 }]}>
@@ -370,6 +373,7 @@ function StopNode({
 }
 
 function FinalStop() {
+  const { color, s } = useStyles();
   return (
     <View style={s.final}>
       <Text style={s.finalLabel}>End of the road</Text>
@@ -381,6 +385,7 @@ function FinalStop() {
 }
 
 function LinkRow({ title, url }: { title: string; url: string }) {
+  const { color, s } = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -394,8 +399,9 @@ function LinkRow({ title, url }: { title: string; url: string }) {
   );
 }
 
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: color.white },
+const makeStyles = (color: Palette) =>
+  StyleSheet.create({
+  screen: { flex: 1, backgroundColor: color.bg },
   top: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 8, width: '100%', maxWidth: 520, alignSelf: 'center' },
   wordmark: { fontFamily: font.black, fontSize: 28, color: color.red, letterSpacing: -1.5 },
   canvas: { width: '100%', maxWidth: 520, alignSelf: 'center' },
@@ -412,25 +418,25 @@ const s = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 2,
     borderBottomWidth: 4,
-    borderColor: color.ink,
-    backgroundColor: '#FBF3E6',
+    borderColor: color.cardBorder,
+    backgroundColor: color.card,
   },
   legArt: { width: 64, height: 64 },
   legPlace: { fontFamily: font.extrabold, fontSize: 22, color: color.ink, letterSpacing: -0.5 },
   legSub: { fontFamily: font.semibold, fontSize: 14, color: color.body },
-  legBar: { height: 6, borderRadius: 2, backgroundColor: '#E8DDCB', marginTop: 6, overflow: 'hidden' },
+  legBar: { height: 6, borderRadius: 2, backgroundColor: color.track, marginTop: 6, overflow: 'hidden' },
   legBarFill: { height: 6, backgroundColor: color.gold },
   legToggle: { fontFamily: font.bold, fontSize: 14, color: color.red },
 
   nodeWrap: { position: 'absolute', width: 160, alignItems: 'center' },
   nodeBase: { height: NODE, marginTop: 7 },
   node: { height: NODE, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
-  nodeAhead: { backgroundColor: color.white, borderColor: '#D9D1C3' },
+  nodeAhead: { backgroundColor: color.bg, borderColor: color.raised },
   nodeCurrent: { backgroundColor: color.red, borderColor: color.redDark },
   nodeDone: { backgroundColor: color.gold, borderColor: color.goldDark },
   pulse: { position: 'absolute', top: -2, height: NODE + 18, borderRadius: 24, borderWidth: 4, borderColor: color.red },
   nodeText: { fontFamily: font.extrabold, fontSize: 15, color: color.muted },
-  nodeTextOn: { color: color.white },
+  nodeTextOn: { color: color.onAccent },
   caption: { marginTop: 6, fontFamily: font.semibold, fontSize: 13, lineHeight: 16, color: color.muted, textAlign: 'center' },
   captionOn: { color: color.ink },
 
@@ -451,3 +457,9 @@ const s = StyleSheet.create({
   linkTitle: { fontFamily: font.bold, fontSize: 16, color: color.ink },
   linkTag: { fontFamily: font.bold, fontSize: 14, color: color.red },
 });
+
+function useStyles() {
+  const color = useColors();
+  const s = useMemo(() => makeStyles(color), [color]);
+  return { color, s };
+}

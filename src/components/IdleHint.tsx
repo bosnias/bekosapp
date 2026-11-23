@@ -1,9 +1,9 @@
 // Small text links that only appear if the learner hasn't done anything for a
 // few seconds, e.g. "Can't talk right now?". Speaking is always the default.
 
-import { useEffect, useState } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { color, font } from '../theme';
+import { font, useColors, type Palette } from '../theme';
 
 const IDLE_MS = 6000;
 
@@ -11,6 +11,7 @@ export type Hint = { label: string; onPress: () => void };
 
 // `resetKey` changes whenever the learner does something; the timer starts over.
 export function IdleHint({ hints, resetKey, active = true }: { hints: Hint[]; resetKey: unknown; active?: boolean }) {
+  const { color, s } = useStyles();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export function IdleHint({ hints, resetKey, active = true }: { hints: Hint[]; re
 
 // Always-visible small link, used to switch back once a learner has opted out of sound or speaking.
 export function SmallLink({ label, onPress }: Hint) {
+  const { color, s } = useStyles();
   return (
     <View style={s.row}>
       <Pressable accessibilityRole="button" onPress={onPress} hitSlop={10}>
@@ -44,7 +46,8 @@ export function SmallLink({ label, onPress }: Hint) {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (color: Palette) =>
+  StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'center', gap: 20, paddingVertical: 4 },
   link: {
     fontFamily: font.semibold,
@@ -53,3 +56,9 @@ const s = StyleSheet.create({
     textDecorationLine: 'underline',
   },
 });
+
+function useStyles() {
+  const color = useColors();
+  const s = useMemo(() => makeStyles(color), [color]);
+  return { color, s };
+}

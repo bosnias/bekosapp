@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.bekos"
@@ -34,7 +34,11 @@
         {
           "image": "./assets/splash-icon.png",
           "imageWidth": 140,
-          "backgroundColor": "#FFFFFF"
+          "backgroundColor": "#FFFFFF",
+          "dark": {
+            "backgroundColor": "#141A1E",
+            "image": "./assets/splash-icon.png"
+          }
         }
       ],
       [

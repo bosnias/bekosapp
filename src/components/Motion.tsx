@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Easing, StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
-import { color } from '../theme';
+import { palettes, useColors } from '../theme';
 
 // Slides and fades its children in when it first appears.
 export function Appear({ children, delay = 0, from = 14, style }: { children: ReactNode; delay?: number; from?: number; style?: ViewStyle }) {
@@ -41,7 +41,10 @@ export function CountUp({ to, style, duration = 700 }: { to: number; style?: Tex
 }
 
 // A progress bar whose fill slides to its new value.
-export function Bar({ value, style, fill = color.red, track = color.line }: { value: number; style?: ViewStyle; fill?: string; track?: string }) {
+export function Bar({ value, style, fill, track }: { value: number; style?: ViewStyle; fill?: string; track?: string }) {
+  const color = useColors();
+  fill = fill ?? color.red;
+  track = track ?? color.line;
   const v = useRef(new Animated.Value(value)).current;
   useEffect(() => {
     Animated.timing(v, { toValue: value, duration: 450, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
@@ -57,14 +60,14 @@ export function Bar({ value, style, fill = color.red, track = color.line }: { va
 
 // A burst of little squares in the brand colors, for a great attempt.
 const PIECES = 16;
-const BURST_COLORS = [color.red, color.gold, color.ink, color.good];
+const BURST_COLORS = [palettes.light.red, palettes.light.gold, palettes.light.ink, palettes.light.good, palettes.dark.gold];
 export function Burst() {
   const v = useRef(new Animated.Value(0)).current;
   const pieces = useRef(
     Array.from({ length: PIECES }, (_, i) => {
       const angle = (i / PIECES) * Math.PI * 2 + Math.random() * 0.4;
       const dist = 70 + Math.random() * 70;
-      return { dx: Math.cos(angle) * dist, dy: Math.sin(angle) * dist - 30, spin: (Math.random() - 0.5) * 540, c: BURST_COLORS[i % 4], size: 7 + Math.random() * 6 };
+      return { dx: Math.cos(angle) * dist, dy: Math.sin(angle) * dist - 30, spin: (Math.random() - 0.5) * 540, c: BURST_COLORS[i % BURST_COLORS.length], size: 7 + Math.random() * 6 };
     }),
   ).current;
   useEffect(() => {

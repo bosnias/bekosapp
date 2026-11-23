@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 // The opening of the course: the mascot on the plane, landing in the country.
 // The animation is a placeholder until it's made.
 
@@ -9,9 +10,10 @@ import { useProgress } from '../progress';
 import { toMap } from '../nav';
 import { AssetSlot } from '../components/AssetSlot';
 import { Button } from '../components/Button';
-import { color, font } from '../theme';
+import { font, useColors, type Palette } from '../theme';
 
 export default function Begin() {
+  const { color, s } = useStyles();
   const { markIntroSeen } = useProgress();
 
   const begin = () => {
@@ -41,8 +43,9 @@ export default function Begin() {
   );
 }
 
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: color.white },
+const makeStyles = (color: Palette) =>
+  StyleSheet.create({
+  screen: { flex: 1, backgroundColor: color.bg },
   wrap: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center' },
   top: { paddingHorizontal: 24, paddingTop: 12 },
   back: { fontFamily: font.bold, fontSize: 16, color: color.red },
@@ -53,3 +56,9 @@ const s = StyleSheet.create({
   text: { fontFamily: font.regular, fontSize: 17, lineHeight: 26, color: color.body, marginTop: 14 },
   footer: { padding: 24, paddingTop: 12 },
 });
+
+function useStyles() {
+  const color = useColors();
+  const s = useMemo(() => makeStyles(color), [color]);
+  return { color, s };
+}

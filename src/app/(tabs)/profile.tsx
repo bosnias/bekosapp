@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 // Profile: your avatar, how far you've come, and a passport stamped at every
 // place you make it through. Finishing a language unlocks its bread as an avatar.
 
@@ -7,7 +8,7 @@ import { course, stops, units } from '../../lessons';
 import { useProgress } from '../../progress';
 import { AssetSlot } from '../../components/AssetSlot';
 import { Pop } from '../../components/Motion';
-import { color, font } from '../../theme';
+import { font, useColors, type Palette } from '../../theme';
 
 // Breads you can wear once you finish that language. Art is a placeholder.
 const AVATARS = [
@@ -18,6 +19,7 @@ const AVATARS = [
 ];
 
 export default function Profile() {
+  const { color, s } = useStyles();
   const { done } = useProgress();
   const stopsDone = stops.filter((s) => done[s.id] !== undefined).length;
   const scored = stops.map((s) => done[s.id]).filter((v): v is number => !!v && v > 0);
@@ -84,6 +86,7 @@ export default function Profile() {
 }
 
 function Stat({ value, label }: { value: number; label: string }) {
+  const { color, s } = useStyles();
   return (
     <View style={s.stat}>
       <Text style={s.statValue}>{value}</Text>
@@ -92,8 +95,9 @@ function Stat({ value, label }: { value: number; label: string }) {
   );
 }
 
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: color.white },
+const makeStyles = (color: Palette) =>
+  StyleSheet.create({
+  screen: { flex: 1, backgroundColor: color.bg },
   wrap: { width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 24, paddingBottom: 40 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 16 },
   avatar: { width: 84, height: 84 },
@@ -120,8 +124,8 @@ const s = StyleSheet.create({
     padding: 10,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: color.ink,
-    backgroundColor: '#FBF3E6',
+    borderColor: color.cardBorder,
+    backgroundColor: color.card,
   },
   stampCell: { width: '50%', padding: 8, alignItems: 'center' },
   stamp: {
@@ -141,16 +145,22 @@ const s = StyleSheet.create({
     aspectRatio: 1.4,
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: '#D3C8B5',
+    borderColor: color.stampLine,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 8,
   },
-  stampEmptyText: { fontFamily: font.semibold, fontSize: 13, color: '#B3A893', textAlign: 'center' },
+  stampEmptyText: { fontFamily: font.semibold, fontSize: 13, color: color.stampText, textAlign: 'center' },
   avatars: { flexDirection: 'row', gap: 10, marginTop: 14 },
   avatarCell: { flex: 1, alignItems: 'center', gap: 4 },
   avatarSmall: { width: '100%', aspectRatio: 1 },
   avatarName: { fontFamily: font.bold, fontSize: 14, color: color.ink },
   avatarLang: { fontFamily: font.regular, fontSize: 12, color: color.muted, textAlign: 'center' },
 });
+
+function useStyles() {
+  const color = useColors();
+  const s = useMemo(() => makeStyles(color), [color]);
+  return { color, s };
+}

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 // Practice: phrases you've already met, weakest first, so you can go back and nail them.
 
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -7,9 +8,10 @@ import { allPhrases } from '../../lessons';
 import { useProgress } from '../../progress';
 import { Appear } from '../../components/Motion';
 import { feel } from '../../feel';
-import { color, font } from '../../theme';
+import { font, useColors, type Palette } from '../../theme';
 
 export default function Practice() {
+  const { color, s } = useStyles();
   const { done, mode } = useProgress();
   const showText = mode === 'noListen';
   const met = allPhrases
@@ -45,7 +47,7 @@ export default function Practice() {
                       <Text style={s.rowMain}>{showText ? p.text : p.meaning}</Text>
                     </View>
                     <View style={[s.badge, score >= 85 ? s.good : score > 0 ? s.ok : s.heard]}>
-                      <Text style={[s.badgeText, score > 0 && score < 85 && { color: color.ink }]}>
+                      <Text style={[s.badgeText, score > 0 && score < 85 && { color: color.onGold }]}>
                         {score > 0 ? score : 'Heard'}
                       </Text>
                     </View>
@@ -60,8 +62,9 @@ export default function Practice() {
   );
 }
 
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: color.white },
+const makeStyles = (color: Palette) =>
+  StyleSheet.create({
+  screen: { flex: 1, backgroundColor: color.bg },
   wrap: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 24 },
   title: { fontFamily: font.black, fontSize: 34, color: color.ink, letterSpacing: -1, marginTop: 12, marginBottom: 4 },
   sub: { fontFamily: font.regular, fontSize: 15, color: color.muted, marginBottom: 12 },
@@ -79,9 +82,15 @@ const s = StyleSheet.create({
   good: { backgroundColor: color.good },
   ok: { backgroundColor: color.gold },
   heard: { backgroundColor: color.muted },
-  badgeText: { fontFamily: font.bold, fontSize: 14, color: color.white },
+  badgeText: { fontFamily: font.bold, fontSize: 14, color: color.onAccent },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingBottom: 60 },
   mascot: { width: 110, height: 180 },
   emptyTitle: { fontFamily: font.extrabold, fontSize: 24, color: color.ink },
   emptyText: { fontFamily: font.regular, fontSize: 16, lineHeight: 24, color: color.body, textAlign: 'center' },
 });
+
+function useStyles() {
+  const color = useColors();
+  const s = useMemo(() => makeStyles(color), [color]);
+  return { color, s };
+}

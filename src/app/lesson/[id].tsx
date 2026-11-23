@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -10,16 +10,18 @@ import { useProgress } from '../../progress';
 import { toMap } from '../../nav';
 import { Button } from '../../components/Button';
 import { Scene } from '../../components/Scene';
+import { QuitSheet } from '../../components/QuitSheet';
 import { IdleHint, SmallLink } from '../../components/IdleHint';
 import { Appear, Bar, Burst, CountUp, Pop } from '../../components/Motion';
 import { feel } from '../../feel';
-import { color, font } from '../../theme';
+import { font, useColors, type Palette } from '../../theme';
 
 type Step = 'hear' | 'understand' | 'say';
 const SHADOW_TIMES = 3;
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export default function LessonScreen() {
+  const { color, s } = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const phrase = findPhrase(id);
   if (!phrase) {
@@ -40,6 +42,7 @@ export default function LessonScreen() {
 }
 
 function Lesson({ phrase }: { phrase: Phrase }) {
+  const { color, s } = useStyles();
   const { mode, setMode, markDone } = useProgress();
   const showText = mode === 'noListen'; // Bosnian text only when you can't listen
   const canSpeak = mode !== 'noTalk';
@@ -49,6 +52,7 @@ function Lesson({ phrase }: { phrase: Phrase }) {
   const [revealed, setRevealed] = useState(false);
   const [shadowing, setShadowing] = useState(0); // 0 = off, else round number
   const [result, setResult] = useState<ScoreResult | null>(null);
+  const [leaving, setLeaving] = useState(false);
 
   const speakers = useSpeakers(phrase.text, phrase.recordings);
   const clip = useClipPlayer();
@@ -111,6 +115,9 @@ function Lesson({ phrase }: { phrase: Phrase }) {
     });
   };
 
+  // Leaving before you've started is free; mid-lesson we ask first.
+  const leave = () => (plays === 0 && step === 'hear' && !result ? toMap() : setLeaving(true));
+
   const stepNumber = step === 'hear' ? 0 : step === 'understand' ? 1 : 2;
   const labels = [showText ? 'Read it' : 'Hear it', 'Understand it', canSpeak ? 'Say it' : 'Think it'];
   const wordLabel = (i: number) => (showText ? phrase.words[i]?.word : phrase.words[i]?.meaning) ?? '';
@@ -123,7 +130,7 @@ function Lesson({ phrase }: { phrase: Phrase }) {
   return (
     <View style={s.lesson}>
       <View style={s.top}>
-        <Pressable accessibilityRole="button" onPress={toMap} hitSlop={12}>
+        <Pressable accessibilityRole="button" onPress={result ? toMap : leave} hitSlop={12}>
           <Text style={s.back}>‹ Map</Text>
         </Pressable>
         {unit && <Text style={s.position}>{unit.place}</Text>}
@@ -329,11 +336,21 @@ function Lesson({ phrase }: { phrase: Phrase }) {
           </>
         )}
       </View>
+      <QuitSheet
+        open={leaving}
+        message="Wait, you're almost through this one!"
+        onStay={() => setLeaving(false)}
+        onQuit={() => {
+          setLeaving(false);
+          toMap();
+        }}
+      />
     </View>
   );
 }
 
 function Small({ label, onPress }: { label: string; onPress: () => void }) {
+  const { color, s } = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -357,6 +374,7 @@ function Result({
   showText: boolean;
   onWord?: (i: number) => void;
 }) {
+  const { color, s } = useStyles();
   const allGood = result.words.every((w) => w.status === 'good');
   const verdict = result.score >= 85 && allGood ? 'Spot on.' : result.score >= 60 ? 'Close.' : 'Not yet.';
   return (
@@ -372,7 +390,7 @@ function Result({
         {result.words.map((w, i) => (
           <Pop key={i} delay={250 + i * 90}>
             <Pressable disabled={!onWord} onPress={() => onWord?.(i)} style={[s.chip, s[w.status]]}>
-              <Text style={[s.chipText, w.status === 'close' && { color: color.ink }]}>{label(i)}</Text>
+              <Text style={[s.chipText, w.status === 'close' && { color: color.onGold }]}>{label(i)}</Text>
             </Pressable>
           </Pop>
         ))}
@@ -388,8 +406,9 @@ function Result({
   );
 }
 
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: color.white },
+const makeStyles = (color: Palette) =>
+  StyleSheet.create({
+  screen: { flex: 1, backgroundColor: color.bg },
   missing: { flex: 1, padding: 24, justifyContent: 'center', gap: 16 },
   lesson: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center' },
   top: {
@@ -452,10 +471,16 @@ const s = StyleSheet.create({
   good: { backgroundColor: color.good },
   close: { backgroundColor: color.gold },
   miss: { backgroundColor: color.red },
-  chipText: { fontFamily: font.bold, fontSize: 18, color: color.white },
+  chipText: { fontFamily: font.bold, fontSize: 18, color: color.onAccent },
   heard: { fontFamily: font.regular, fontSize: 15, color: color.muted, marginTop: 16 },
   heardText: { fontFamily: font.semibold, color: color.ink },
   error: { fontFamily: font.semibold, fontSize: 15, color: color.red, marginTop: 24 },
   footer: { padding: 24, paddingTop: 12, gap: 12 },
   pair: { flexDirection: 'row', gap: 12 },
 });
+
+function useStyles() {
+  const color = useColors();
+  const s = useMemo(() => makeStyles(color), [color]);
+  return { color, s };
+}

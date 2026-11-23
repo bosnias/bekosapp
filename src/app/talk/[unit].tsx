@@ -1,7 +1,7 @@
 // End-of-unit conversation: they say a line, you answer. Like talking with a
 // native speaker, you have to respond, not repeat.
 
-import { useEffect, useState } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -14,13 +14,15 @@ import { useProgress } from '../../progress';
 import { toMap } from '../../nav';
 import { Button } from '../../components/Button';
 import { AssetSlot } from '../../components/AssetSlot';
+import { QuitSheet } from '../../components/QuitSheet';
 import { Appear, Bar, Burst, CountUp, Pop } from '../../components/Motion';
 import { feel } from '../../feel';
 import { IdleHint, SmallLink } from '../../components/IdleHint';
-import { color, font } from '../../theme';
+import { font, useColors, type Palette } from '../../theme';
 
 
 export default function TalkScreen() {
+  const { color, s } = useStyles();
   const { unit: unitId } = useLocalSearchParams<{ unit: string }>();
   const unit = findUnit(unitId);
   return (
@@ -40,6 +42,7 @@ export default function TalkScreen() {
 type Attempt = { score: number; heard: string };
 
 function Talk({ unit }: { unit: Unit }) {
+  const { color, s } = useStyles();
   const { mode, setMode, markDone } = useProgress();
   const showText = mode === 'noListen';
   const canSpeak = mode !== 'noTalk';
@@ -49,6 +52,7 @@ function Talk({ unit }: { unit: Unit }) {
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [scores, setScores] = useState<number[]>([]);
   const [finished, setFinished] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   const clip = useClipPlayer();
 
@@ -125,7 +129,11 @@ function Talk({ unit }: { unit: Unit }) {
   return (
     <View style={s.wrap}>
       <View style={s.top}>
-        <Pressable accessibilityRole="button" onPress={toMap} hitSlop={12}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => (turn === 0 && !attempt ? toMap() : setLeaving(true))}
+          hitSlop={12}
+        >
           <Text style={s.back}>‹ Map</Text>
         </Pressable>
         <Text style={s.position}>{unit.place}</Text>
@@ -244,11 +252,21 @@ function Talk({ unit }: { unit: Unit }) {
           </>
         )}
       </View>
+      <QuitSheet
+        open={leaving}
+        message={`${unit.encounter.name} is still waiting for your answer!`}
+        onStay={() => setLeaving(false)}
+        onQuit={() => {
+          setLeaving(false);
+          toMap();
+        }}
+      />
     </View>
   );
 }
 
 function Small({ label, onPress }: { label: string; onPress: () => void }) {
+  const { color, s } = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -261,8 +279,9 @@ function Small({ label, onPress }: { label: string; onPress: () => void }) {
   );
 }
 
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: color.white },
+const makeStyles = (color: Palette) =>
+  StyleSheet.create({
+  screen: { flex: 1, backgroundColor: color.bg },
   missing: { flex: 1, padding: 24, justifyContent: 'center', gap: 16 },
   wrap: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center' },
   top: {
@@ -291,11 +310,11 @@ const s = StyleSheet.create({
   bubble: {
     marginTop: 10,
     borderWidth: 2,
-    borderColor: color.ink,
+    borderColor: color.cardBorder,
     borderRadius: 10,
     padding: 18,
     gap: 6,
-    backgroundColor: '#FBF3E6',
+    backgroundColor: color.card,
   },
   line: { fontFamily: font.black, fontSize: 30, lineHeight: 36, color: color.ink, letterSpacing: -0.8 },
   lineMeaning: { fontFamily: font.bold, fontSize: 18, color: color.red },
@@ -309,7 +328,7 @@ const s = StyleSheet.create({
     borderWidth: 2,
     borderBottomWidth: 3,
     borderColor: color.line,
-    backgroundColor: color.white,
+    backgroundColor: color.bg,
   },
   smallText: { fontFamily: font.bold, fontSize: 14, color: color.red },
   checking: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 32 },
@@ -323,3 +342,9 @@ const s = StyleSheet.create({
   footer: { padding: 24, paddingTop: 12, gap: 12 },
   pair: { flexDirection: 'row', gap: 12 },
 });
+
+function useStyles() {
+  const color = useColors();
+  const s = useMemo(() => makeStyles(color), [color]);
+  return { color, s };
+}

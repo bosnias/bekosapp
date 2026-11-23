@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 // Story card shown when you reach a new leg of the journey: the place, who
 // you're traveling with, and a bit of story. Placeholders until written and drawn.
 
@@ -9,9 +10,10 @@ import { useProgress } from '../../progress';
 import { toMap } from '../../nav';
 import { AssetSlot } from '../../components/AssetSlot';
 import { Button } from '../../components/Button';
-import { color, font } from '../../theme';
+import { font, useColors, type Palette } from '../../theme';
 
 export default function LegIntro() {
+  const { color, s } = useStyles();
   const { unit: unitId } = useLocalSearchParams<{ unit: string }>();
   const unit = findUnit(unitId);
   const { markIntroSeen } = useProgress();
@@ -63,8 +65,9 @@ export default function LegIntro() {
   );
 }
 
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: color.white },
+const makeStyles = (color: Palette) =>
+  StyleSheet.create({
+  screen: { flex: 1, backgroundColor: color.bg },
   missing: { flex: 1, padding: 24, justifyContent: 'center', gap: 16 },
   wrap: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center' },
   top: { paddingHorizontal: 24, paddingTop: 12 },
@@ -89,3 +92,9 @@ const s = StyleSheet.create({
   story: { fontFamily: font.regular, fontSize: 17, lineHeight: 26, color: color.body, marginTop: 20 },
   footer: { padding: 24, paddingTop: 12 },
 });
+
+function useStyles() {
+  const color = useColors();
+  const s = useMemo(() => makeStyles(color), [color]);
+  return { color, s };
+}
