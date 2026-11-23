@@ -4,7 +4,8 @@
 export default async (req: Request) => {
   if (req.method !== 'POST') return new Response('POST only', { status: 405 });
   const key = process.env.AZURE_SPEECH_KEY;
-  const region = process.env.AZURE_SPEECH_REGION;
+  // Accepts "westus2", "West US 2" or " westus2 " alike.
+  const region = (process.env.AZURE_SPEECH_REGION ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
   if (!key || !region) return new Response('Speech key not set', { status: 500 });
 
   const incoming = await req.formData();
@@ -16,10 +17,17 @@ export default async (req: Request) => {
   form.append('audio', audio, (audio as File).name || 'attempt');
   form.append('definition', JSON.stringify({ locales: ['bs-BA'], profanityFilterMode: 'None' }));
 
-  const res = await fetch(
-    `https://${region}.api.cognitive.microsoft.com/speechtotext/transcriptions:transcribe?api-version=2024-11-15`,
-    { method: 'POST', headers: { 'Ocp-Apim-Subscription-Key': key }, body: form },
-  );
+  const host = `${region}.api.cognitive.microsoft.com`;
+  let res: Response;
+  try {
+    res = await fetch(`https://${host}/speechtotext/transcriptions:transcribe?api-version=2024-11-15`, {
+      method: 'POST',
+      headers: { 'Ocp-Apim-Subscription-Key': key },
+      body: form,
+    });
+  } catch {
+    return new Response(`Could not reach ${host}. Check AZURE_SPEECH_REGION in Netlify.`, { status: 502 });
+  }
   if (!res.ok) return new Response(await res.text(), { status: 502 });
 
   const data = await res.json();
