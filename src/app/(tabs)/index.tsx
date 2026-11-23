@@ -31,22 +31,30 @@ import { Check, Chevron, Ear, Flame, ListIcon, Loaf, People, Person } from '../.
 import { feel } from '../../feel';
 import { font, useColors, type Palette } from '../../theme';
 
-// Tile sizes. Tiles are diamonds seen from above at an angle, with a thick edge.
-const TW = 104;
-const TH = 60;
-const ETW = 136; // encounter tiles are bigger
-const ETH = 78;
-const DEPTH = 14;
+// The grid. Everything on the map sits in a diamond cell of this grid, so the
+// perspective stays consistent. RATIO is the one setting for the perspective:
+// cell height divided by cell width (0.5 is flat, 1 is looking straight down).
+const RATIO = 0.72;
+const CW = 120; // cell width
+const CH = CW * RATIO; // cell height
+const HW = CW / 2; // one step sideways
+const HH = CH / 2; // one step up
+// Tiles fill most of their cell; encounter tiles fill almost all of it.
+const TW = CW * 0.78;
+const TH = CH * 0.78;
+const ETW = CW * 0.9;
+const ETH = CH * 0.9;
+const DEPTH = 15;
 const R = 7; // corner rounding
-const STEP = 54; // vertical distance between tiles
-const AMP = 42; // how far the path swings left and right
+// The path moves one cell diagonally per stop, swinging between two cells left
+// and two cells right of center (in half-cell columns).
 const PATTERN = [0, 1, 2, 1, 0, -1, -2, -1];
 const HEADER_H = 92;
-const GAP = 44;
-const FINAL_H = 190;
+const HEADER_ROWS = 4; // rows reserved under each leg for its header
+const BOTTOM = 70;
+const FINAL_H = 200;
 const MASCOT_W = 54;
 const MASCOT_H = 88;
-const SCENERY = 88;
 const BUBBLE_W = 138;
 
 type Placed = { stop: Stop; x: number; y: number; done: boolean; swing: number; next: number };
@@ -72,66 +80,69 @@ export default function Map() {
   const [open, setOpen] = useState<Record<string, boolean>>({ [current.unit.id]: true });
   const toggle = (id: string) => setOpen((o) => ({ ...o, [id]: !o[id] }));
 
-  // Lay everything out from the bottom up. `yb` is distance from the bottom.
+  // Lay everything out on the grid, from the bottom up. A cell is (row, col) in
+  // half-cell steps; real cells are where row + col is even.
   const layout = useMemo(() => {
-    const cx = width / 2;
-    let y = 28;
-    const headers: { unit: Unit; yb: number; expanded: boolean; progress: number }[] = [];
-    const nodes: { stop: Stop; x: number; yb: number; done: boolean; swing: number; next: number }[] = [];
-    const scenery: { key: string; name: string; x: number; yb: number }[] = [];
+    const headers: { unit: Unit; row: number; expanded: boolean; progress: number }[] = [];
+    const nodes: { stop: Stop; row: number; col: number; done: boolean; next: number }[] = [];
+    const scenery: { key: string; name: string; row: number; col: number }[] = [];
+    let row = 0;
+    const even = (n: number) => (n % 2 === 0 ? n : n + 1);
     units.forEach((unit, u) => {
       const legStops = stops.filter((s) => s.unit.id === unit.id);
       const expanded = !!open[unit.id];
       const progress = legStops.filter(isDone).length / legStops.length;
-      headers.push({ unit, yb: y, expanded, progress });
-      y += HEADER_H + 56;
+      headers.push({ unit, row, expanded, progress });
+      row += HEADER_ROWS;
       if (expanded) {
+        let count = 0;
         legStops.forEach((stop, i) => {
-          const encounter = stop.kind === 'encounter';
-          const swing = encounter ? 0 : PATTERN[i % PATTERN.length];
-          const nextSwing = i + 1 < legStops.length ? (legStops[i + 1].kind === 'encounter' ? 0 : PATTERN[(i + 1) % PATTERN.length]) : 0;
-          if (encounter) y += 18;
-          nodes.push({ stop, x: cx + swing * AMP, yb: y, done: isDone(stop), swing, next: nextSwing - swing });
-          // Scenery sits on the open side when the path swings far over.
-          const nearEncounter = legStops.slice(i + 1, i + 3).some((x) => x.kind === 'encounter');
-          if (Math.abs(swing) === 2 && !encounter && !nearEncounter) {
-            scenery.push({
-              key: `${unit.id}-${i}`,
-              name: `leg-${u + 1}-scenery-${scenery.filter((sc) => sc.key.startsWith(unit.id)).length + 1}.png`,
-              x: cx - Math.sign(swing) * 104 - SCENERY / 2,
-              yb: y,
-            });
+          const col = PATTERN[i % PATTERN.length];
+          const next = i + 1 < legStops.length ? PATTERN[(i + 1) % PATTERN.length] - col : 0;
+          nodes.push({ stop, row, col, done: isDone(stop), next });
+          // Scenery gets its own cell on the open side when the path swings far over.
+          if (Math.abs(col) === 2 && stop.kind !== 'encounter') {
+            count++;
+            scenery.push({ key: `${unit.id}-${i}`, name: `leg-${u + 1}-scenery-${count}.png`, row, col: -col });
           }
-          y += encounter ? STEP + 20 : STEP;
+          row += 1;
         });
-        y += 10;
       }
-      y += GAP;
+      row = even(row) + 2;
     });
-    const height = y + FINAL_H;
-    const top = (yb: number) => height - yb;
+    const height = BOTTOM + row * HH + FINAL_H;
+    const cx = width / 2;
+    const xOf = (col: number) => cx + col * HW;
+    const yOf = (r: number) => height - BOTTOM - r * HH;
     return {
       height,
-      headers: headers.map((h): HeaderPlaced => ({ unit: h.unit, y: top(h.yb) - HEADER_H, expanded: h.expanded, progress: h.progress })),
-      nodes: nodes.map((n): Placed => ({ stop: n.stop, x: n.x, y: top(n.yb), done: n.done, swing: n.swing, next: n.next })),
-      scenery: scenery.map((sc): Scenery => ({ key: sc.key, name: sc.name, x: sc.x, y: top(sc.yb) - SCENERY / 2 })),
+      rows: row,
+      yOf,
+      headers: headers.map((h): HeaderPlaced => ({ unit: h.unit, y: yOf(h.row + 1) - HEADER_H / 2, expanded: h.expanded, progress: h.progress })),
+      nodes: nodes.map((n): Placed => ({ stop: n.stop, x: xOf(n.col), y: yOf(n.row), done: n.done, swing: n.col, next: n.next })),
+      scenery: scenery.map((sc): Scenery => ({ key: sc.key, name: sc.name, x: xOf(sc.col), y: yOf(sc.row) })),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [width, open, done]);
 
   const nodeOf = (id: string | null) => layout.nodes.find((n) => n.stop.id === id);
 
-  // The faint diamond grid on the ground.
+  // The ground: a checkerboard of the same diamond cells the tiles sit in.
   const grid = useMemo(() => {
     if (!width) return '';
-    const slope = TH / TW;
+    const cols = Math.ceil(width / HW / 2) + 2;
     let d = '';
-    for (let k = -width * slope; k < layout.height + width * slope; k += TH) {
-      d += `M 0 ${k} L ${width} ${k + width * slope} `;
-      d += `M 0 ${k + width * slope} L ${width} ${k} `;
+    for (let r = -Math.ceil(BOTTOM / HH) - 1; r <= layout.rows + Math.ceil(FINAL_H / HH) + 1; r++) {
+      if (Math.abs(r) % 2 !== 1) continue;
+      const y = layout.yOf(r);
+      for (let c = -cols; c <= cols; c++) {
+        if (Math.abs(r + c) % 2 !== 0) continue;
+        const x = width / 2 + c * HW;
+        d += `M ${x - HW} ${y} L ${x} ${y - HH} L ${x + HW} ${y} L ${x} ${y + HH} Z `;
+      }
     }
     return d;
-  }, [width, layout.height]);
+  }, [width, layout]);
 
   // Mascot position and hop.
   const pos = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
@@ -266,7 +277,7 @@ export default function Map() {
           {!!width && (
             <View style={s.fill} pointerEvents="none">
               <Svg width={width} height={layout.height}>
-                <Path d={grid} stroke={color.groundLine} strokeWidth={2} fill="none" />
+                <Path d={grid} fill={color.groundLine} />
               </Svg>
             </View>
           )}
@@ -274,7 +285,7 @@ export default function Map() {
           <FinalStop />
 
           {layout.scenery.map((sc) => (
-            <AssetSlot key={sc.key} name={sc.name} compact style={{ ...s.scenery, left: sc.x, top: sc.y }} />
+            <SceneryCell key={sc.key} spot={sc} />
           ))}
 
           {layout.headers.map((h) => (
@@ -435,6 +446,25 @@ function Tile({ node, isCurrent, onPress }: { node: Placed; isCurrent: boolean; 
   );
 }
 
+// A cell waiting for scenery art (a cabin, a bench, a luggage cart...).
+function SceneryCell({ spot }: { spot: Scenery }) {
+  const { color, s } = useStyles();
+  const w = CW * 0.92;
+  const h = CH * 0.92;
+  return (
+    <View pointerEvents="none" style={[s.scenery, { left: spot.x - w / 2, top: spot.y - h / 2, width: w, height: h }]}>
+      <View style={s.fill}>
+        <Svg width={w} height={h}>
+          <Polygon points={diamond(w, h)} fill={color.slotBg} stroke={color.slotBorder} strokeWidth={2} strokeDasharray="6 5" strokeLinejoin="round" />
+        </Svg>
+      </View>
+      <Text style={s.sceneryText} numberOfLines={2}>
+        {spot.name.replace('.png', '')}
+      </Text>
+    </View>
+  );
+}
+
 // "Next" label beside your tile, on whichever side has room.
 function NextBubble({ node, width, showText, onPress }: { node: Placed; width: number; showText: boolean; onPress: () => void }) {
   const { s } = useStyles();
@@ -445,7 +475,7 @@ function NextBubble({ node, width, showText, onPress }: { node: Placed; width: n
   left = Math.max(8, Math.min(width - BUBBLE_W - 8, left));
   const text = stop.kind === 'encounter' ? `Meet ${stop.unit.encounter.name}` : showText ? stop.phrase.text : stop.phrase.meaning;
   return (
-    <View style={[s.bubbleWrap, { left, top: node.y - 92 }]}>
+    <View style={[s.bubbleWrap, { left, top: node.y - 34 }]}>
       <Pop>
         <Pressable onPress={onPress} style={s.bubble} accessibilityRole="button">
           <Text style={s.bubbleLabel}>Next</Text>
@@ -575,7 +605,8 @@ const makeStyles = (color: Palette) =>
     canvas: { width: '100%', maxWidth: 520, alignSelf: 'center' },
     fill: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 },
 
-    scenery: { position: 'absolute', width: SCENERY, height: SCENERY, opacity: 0.9 },
+    scenery: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+    sceneryText: { fontFamily: font.semibold, fontSize: 10, color: color.muted, textAlign: 'center', width: 70 },
 
     leg: { position: 'absolute', left: 16, right: 16, height: HEADER_H, flexDirection: 'row', alignItems: 'center', gap: 14 },
     legArt: { width: 68, height: 68 },
