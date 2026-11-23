@@ -20,11 +20,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { router, useFocusEffect } from 'expo-router';
-import { stops, units, type Stop, type Unit } from '../lessons';
-import { useProgress } from '../progress';
-import { links } from '../config';
-import { AssetSlot } from '../components/AssetSlot';
-import { color, font } from '../theme';
+import { stops, units, type Stop, type Unit } from '../../lessons';
+import { useProgress } from '../../progress';
+import { links } from '../../config';
+import { AssetSlot } from '../../components/AssetSlot';
+import { Bar, Pop } from '../../components/Motion';
+import { feel } from '../../feel';
+import { color, font } from '../../theme';
 
 const NODE = 72;
 const ENCOUNTER_W = 132;
@@ -107,6 +109,20 @@ export default function Map() {
   // Mascot position and hop.
   const pos = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const lift = useRef(new Animated.Value(0)).current;
+  const squash = useRef(new Animated.Value(1)).current;
+  const bob = useRef(new Animated.Value(0)).current;
+
+  // A gentle idle bob while the mascot waits on its stop.
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(bob, { toValue: 1, duration: 900, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(bob, { toValue: 0, duration: 900, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [bob]);
   const [mascotVisible, setMascotVisible] = useState(false);
   const mascotSpot = (n: Placed) => ({ x: n.x - MASCOT_W / 2, y: n.y - NODE / 2 - MASCOT_H + 14 });
 
@@ -132,7 +148,13 @@ export default function Map() {
         Animated.timing(lift, { toValue: 1, duration: 325, easing: Easing.out(Easing.quad), useNativeDriver: true }),
         Animated.timing(lift, { toValue: 0, duration: 325, easing: Easing.in(Easing.quad), useNativeDriver: true }),
       ]),
-    ]).start(() => setMascotAt(current.id));
+    ]).start(() => {
+      // Land: squash, then spring back.
+      feel.land();
+      squash.setValue(0.78);
+      Animated.spring(squash, { toValue: 1, useNativeDriver: true, speed: 18, bounciness: 16 }).start();
+      setMascotAt(current.id);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layout, current.id, mascotAt]);
 
@@ -209,7 +231,6 @@ export default function Map() {
                 key={n.stop.id}
                 node={n}
                 isCurrent={n.stop.id === current.id}
-                score={done[n.stop.id]}
                 showText={showText}
                 onPress={() => openStop(n.stop)}
               />
@@ -223,12 +244,21 @@ export default function Map() {
                 {
                   transform: [
                     { translateX: pos.x },
-                    { translateY: Animated.add(pos.y, lift.interpolate({ inputRange: [0, 1], outputRange: [0, -70] })) },
+                    {
+                      translateY: Animated.add(
+                        Animated.add(pos.y, lift.interpolate({ inputRange: [0, 1], outputRange: [0, -70] })),
+                        bob.interpolate({ inputRange: [0, 1], outputRange: [0, -5] }),
+                      ),
+                    },
+                    { translateY: MASCOT_H / 2 },
+                    { scaleY: squash },
+                    { scaleX: squash.interpolate({ inputRange: [0.78, 1], outputRange: [1.15, 1] }) },
+                    { translateY: -MASCOT_H / 2 },
                   ],
                 },
               ]}
             >
-              <Image source={require('../../assets/mascot.png')} style={{ width: MASCOT_W, height: MASCOT_H }} resizeMode="contain" />
+              <Image source={require('../../../assets/mascot.png')} style={{ width: MASCOT_W, height: MASCOT_H }} resizeMode="contain" />
             </Animated.View>
           )}
         </View>
@@ -242,7 +272,10 @@ function LegHeader({ header, onPress }: { header: HeaderPlaced; onPress: () => v
   return (
     <Pressable
       accessibilityRole="button"
-      onPress={onPress}
+      onPress={() => {
+        feel.select();
+        onPress();
+      }}
       style={({ pressed }) => [s.leg, { top: header.y }, pressed && { backgroundColor: '#F6E8D0' }]}
     >
       <AssetSlot name={unit.companion.art} image={unit.companion.image} style={s.legArt} compact />
@@ -251,9 +284,7 @@ function LegHeader({ header, onPress }: { header: HeaderPlaced; onPress: () => v
         <Text style={s.legSub} numberOfLines={1}>
           {unit.title} · with {unit.companion.name}
         </Text>
-        <View style={s.legBar}>
-          <View style={[s.legBarFill, { width: `${Math.round(progress * 100)}%` }]} />
-        </View>
+        <Bar value={progress} fill={color.gold} track="#E8DDCB" style={{ marginTop: 6, height: 7 }} />
       </View>
       <Text style={s.legToggle}>{expanded ? 'Hide' : 'Show'}</Text>
     </Pressable>
@@ -263,7 +294,6 @@ function LegHeader({ header, onPress }: { header: HeaderPlaced; onPress: () => v
 function StopNode({
   node,
   isCurrent,
-  score,
   showText,
   onPress,
 }: {
@@ -278,24 +308,60 @@ function StopNode({
   const w = encounter ? ENCOUNTER_W : NODE;
   const caption =
     stop.kind === 'encounter' ? stop.unit.encounter.name : showText ? stop.phrase.text : stop.phrase.meaning;
+  const sink = useRef(new Animated.Value(0)).current;
+  const pulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!isCurrent) return;
+    const loop = Animated.loop(
+      Animated.timing(pulse, { toValue: 1, duration: 1400, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [isCurrent, pulse]);
+
+  const tone = done ? s.nodeDone : isCurrent ? s.nodeCurrent : s.nodeAhead;
+  const base = done ? color.goldDark : isCurrent ? color.redDark : '#D9D1C3';
+
   return (
     <View style={[s.nodeWrap, { left: node.x - 80, top: node.y - NODE / 2 }]}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={caption}
-        onPress={onPress}
-        style={({ pressed }) => [
-          s.node,
-          { width: w },
-          done ? s.nodeDone : isCurrent ? s.nodeCurrent : s.nodeAhead,
-          encounter && s.nodeEncounter,
-          pressed && s.nodePressed,
-        ]}
-      >
-        {encounter ? (
-          <Text style={[s.nodeText, (done || isCurrent) && s.nodeTextOn]}>Encounter</Text>
-        ) : null}
-      </Pressable>
+      <Pop>
+        {isCurrent && (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              s.pulse,
+              { width: w + 18, left: (160 - w) / 2 - 9 },
+              {
+                opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.5, 0] }),
+                transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.25] }) }],
+              },
+            ]}
+          />
+        )}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={caption}
+          onPress={() => {
+            feel.press();
+            onPress();
+          }}
+          onPressIn={() => Animated.spring(sink, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 0 }).start()}
+          onPressOut={() => Animated.spring(sink, { toValue: 0, useNativeDriver: true, speed: 20, bounciness: 10 }).start()}
+          style={[s.nodeBase, { width: w, backgroundColor: base, borderRadius: encounter ? 16 : 20 }]}
+        >
+          <Animated.View
+            style={[
+              s.node,
+              { width: w, borderRadius: encounter ? 16 : 20 },
+              tone,
+              { transform: [{ translateY: sink.interpolate({ inputRange: [0, 1], outputRange: [-7, 0] }) }] },
+            ]}
+          >
+            {encounter ? <Text style={[s.nodeText, (done || isCurrent) && s.nodeTextOn]}>Encounter</Text> : null}
+          </Animated.View>
+        </Pressable>
+      </Pop>
       <Text style={[s.caption, (done || isCurrent) && s.captionOn]} numberOfLines={2}>
         {caption}
       </Text>
@@ -357,19 +423,12 @@ const s = StyleSheet.create({
   legToggle: { fontFamily: font.bold, fontSize: 14, color: color.red },
 
   nodeWrap: { position: 'absolute', width: 160, alignItems: 'center' },
-  node: {
-    height: NODE,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderBottomWidth: 6,
-  },
-  nodeAhead: { backgroundColor: color.white, borderColor: '#DCD4C6' },
+  nodeBase: { height: NODE, marginTop: 7 },
+  node: { height: NODE, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
+  nodeAhead: { backgroundColor: color.white, borderColor: '#D9D1C3' },
   nodeCurrent: { backgroundColor: color.red, borderColor: color.redDark },
   nodeDone: { backgroundColor: color.gold, borderColor: color.goldDark },
-  nodeEncounter: { borderRadius: 14 },
-  nodePressed: { transform: [{ translateY: 3 }], borderBottomWidth: 3 },
+  pulse: { position: 'absolute', top: -2, height: NODE + 18, borderRadius: 24, borderWidth: 4, borderColor: color.red },
   nodeText: { fontFamily: font.extrabold, fontSize: 15, color: color.muted },
   nodeTextOn: { color: color.white },
   caption: { marginTop: 6, fontFamily: font.semibold, fontSize: 13, lineHeight: 16, color: color.muted, textAlign: 'center' },

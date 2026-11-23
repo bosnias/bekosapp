@@ -33,7 +33,10 @@ export default function RootLayout() {
   return (
     <ProgressProvider>
       <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.white } }} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.white }, animation: 'slide_from_right' }}>
+        <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
+        <Stack.Screen name="begin" options={{ animation: 'slide_from_bottom' }} />
+      </Stack>
     </ProgressProvider>
   );
 }

@@ -11,6 +11,8 @@ import { toMap } from '../../nav';
 import { Button } from '../../components/Button';
 import { Scene } from '../../components/Scene';
 import { IdleHint, SmallLink } from '../../components/IdleHint';
+import { Appear, Bar, Burst, CountUp, Pop } from '../../components/Motion';
+import { feel } from '../../feel';
 import { color, font } from '../../theme';
 
 type Step = 'hear' | 'understand' | 'say';
@@ -52,6 +54,8 @@ function Lesson({ phrase }: { phrase: Phrase }) {
   const clip = useClipPlayer();
   const attempt = useAttempt((heard) => {
     const r = scorePhrase(phrase.text, heard);
+    if (r.score >= 85) feel.success();
+    else feel.miss();
     setResult(r);
     markDone(phrase.id, r.score);
   });
@@ -127,13 +131,14 @@ function Lesson({ phrase }: { phrase: Phrase }) {
       <View style={s.progress}>
         {labels.map((label, i) => (
           <View key={label} style={s.progressItem}>
-            <View style={[s.bar, i <= stepNumber && s.barOn]} />
+            <Bar value={i <= stepNumber ? 1 : 0} style={{ height: 6 }} />
             <Text style={[s.barLabel, i === stepNumber && s.barLabelOn]}>{label}</Text>
           </View>
         ))}
       </View>
 
       <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
+        <Appear key={`${step}-${revealed}-${mode}`} style={{ flexGrow: 1 }}>
         {step === 'hear' && !showText && (
           <View style={s.center}>
             <Image source={require('../../../assets/mascot.png')} style={s.mascot} resizeMode="contain" />
@@ -239,6 +244,7 @@ function Lesson({ phrase }: { phrase: Phrase }) {
             )}
           </View>
         )}
+        </Appear>
       </ScrollView>
 
       <View style={s.footer}>
@@ -355,15 +361,20 @@ function Result({
   const verdict = result.score >= 85 && allGood ? 'Spot on.' : result.score >= 60 ? 'Close.' : 'Not yet.';
   return (
     <View style={s.result}>
+      {verdict === 'Spot on.' && <Burst />}
       <View style={s.scoreRow}>
-        <Text style={s.score}>{result.score}</Text>
-        <Text style={s.scoreLabel}>{verdict}</Text>
+        <CountUp to={result.score} style={s.score} />
+        <Pop delay={500}>
+          <Text style={s.scoreLabel}>{verdict}</Text>
+        </Pop>
       </View>
       <View style={s.chips}>
         {result.words.map((w, i) => (
-          <Pressable key={i} disabled={!onWord} onPress={() => onWord?.(i)} style={[s.chip, s[w.status]]}>
-            <Text style={[s.chipText, w.status === 'close' && { color: color.ink }]}>{label(i)}</Text>
-          </Pressable>
+          <Pop key={i} delay={250 + i * 90}>
+            <Pressable disabled={!onWord} onPress={() => onWord?.(i)} style={[s.chip, s[w.status]]}>
+              <Text style={[s.chipText, w.status === 'close' && { color: color.ink }]}>{label(i)}</Text>
+            </Pressable>
+          </Pop>
         ))}
       </View>
       {showText ? (

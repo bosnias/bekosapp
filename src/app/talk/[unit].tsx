@@ -14,6 +14,8 @@ import { useProgress } from '../../progress';
 import { toMap } from '../../nav';
 import { Button } from '../../components/Button';
 import { AssetSlot } from '../../components/AssetSlot';
+import { Appear, Bar, Burst, CountUp, Pop } from '../../components/Motion';
+import { feel } from '../../feel';
 import { IdleHint, SmallLink } from '../../components/IdleHint';
 import { color, font } from '../../theme';
 
@@ -54,6 +56,8 @@ function Talk({ unit }: { unit: Unit }) {
   const rec = useAttempt((heard) => {
     // Any accepted answer counts; keep the best match.
     const best = Math.max(...t.you.accept.map((a) => scorePhrase(a, heard).score));
+    if (best >= 85) feel.success();
+    else feel.miss();
     setAttempt({ score: best, heard });
   });
   const { checking, error } = rec;
@@ -95,7 +99,10 @@ function Talk({ unit }: { unit: Unit }) {
     return (
       <View style={s.wrap}>
         <ScrollView contentContainerStyle={[s.body, s.center]}>
-          <Image source={require('../../../assets/mascot.png')} style={s.mascot} resizeMode="contain" />
+          <Burst />
+          <Pop>
+            <Image source={require('../../../assets/mascot.png')} style={s.mascot} resizeMode="contain" />
+          </Pop>
           <Text style={s.big}>You made it through {unit.place}.</Text>
           {canSpeak ? (
             <Text style={s.sub}>
@@ -125,11 +132,12 @@ function Talk({ unit }: { unit: Unit }) {
       </View>
       <View style={s.progress}>
         {unit.talk.map((_, i) => (
-          <View key={i} style={[s.bar, i <= turn && s.barOn]} />
+          <Bar key={i} value={i <= turn ? 1 : 0} fill={color.gold} style={{ flex: 1, height: 6 }} />
         ))}
       </View>
 
       <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
+        <Appear key={turn}>
         <View style={s.who}>
           <AssetSlot name={unit.encounter.art} image={unit.encounter.image} style={s.portrait} compact />
           <View style={{ flex: 1 }}>
@@ -167,9 +175,12 @@ function Talk({ unit }: { unit: Unit }) {
 
         {attempt && !checking && (
           <View style={s.result}>
+            {attempt.score >= 85 && <Burst />}
             <View style={s.scoreRow}>
-              <Text style={s.score}>{attempt.score}</Text>
-              <Text style={s.scoreLabel}>{verdict(attempt.score)}</Text>
+              <CountUp to={attempt.score} style={s.score} />
+              <Pop delay={500}>
+                <Text style={s.scoreLabel}>{verdict(attempt.score)}</Text>
+              </Pop>
             </View>
             {showText && (
               <Text style={s.heard}>
@@ -183,6 +194,7 @@ function Talk({ unit }: { unit: Unit }) {
           <Text style={[s.sub, { marginTop: 20 }]}>Answer in your head, then hear a good answer.</Text>
         )}
         {!!error && <Text style={s.error}>{error}</Text>}
+        </Appear>
       </ScrollView>
 
       <View style={s.footer}>
